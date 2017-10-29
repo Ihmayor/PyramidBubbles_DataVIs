@@ -57,8 +57,8 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="CPSC583_10126658_Rrroject2.html" />
-    <Content Include="JavaScript1.js" />
+    <Content Include="CPSC583_10126658_Project2.html" />
+    <Content Include="CPSC583_10126658_Project2.js" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -66,6 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FoodTrendData.csv" />
+    <Content Include="flare.json" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -96,6 +97,7 @@
           <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
         </WebProjectProperties>
       </FlavorProperties>
+      <UserProperties flare_1json__JSONSchema="http://json-schema.org/draft-04/schema" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

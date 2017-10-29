@@ -1,0 +1,6 @@
+C:\Users\User\Documents\Visual Studio 2013\Projects\CPSC583Project2\CPSC583Project2\bin\CPSC583Project2.dll.config
+C:\Users\User\Documents\Visual Studio 2013\Projects\CPSC583Project2\CPSC583Project2\bin\CPSC583Project2.dll
+C:\Users\User\Documents\Visual Studio 2013\Projects\CPSC583Project2\CPSC583Project2\bin\CPSC583Project2.pdb
+C:\Users\User\Documents\Visual Studio 2013\Projects\CPSC583Project2\CPSC583Project2\obj\Debug\CPSC583Project2.csprojResolveAssemblyReference.cache
+C:\Users\User\Documents\Visual Studio 2013\Projects\CPSC583Project2\CPSC583Project2\obj\Debug\CPSC583Project2.dll
+C:\Users\User\Documents\Visual Studio 2013\Projects\CPSC583Project2\CPSC583Project2\obj\Debug\CPSC583Project2.pdb
