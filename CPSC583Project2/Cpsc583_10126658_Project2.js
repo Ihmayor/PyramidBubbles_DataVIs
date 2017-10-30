@@ -369,11 +369,13 @@ d3.csv("FoodTrendData.csv",
                 .velocityDecay(0.2)
                 .force("x", forceX)
                 .force("y", forceY)
+                .force('center', d3.forceCenter(center[0], center[1]))
+
                 .force("collide", d3.forceCollide().radius(function (d) {
                     if (d === root) {
-                        return Math.random() * 50 + 100;
+                        return Math.random() * 50 ;
                     }
-                    return d.r + 0.5;
+                    return d.r + 0.2;
                 }).iterations(5))
                 .nodes(nodes).on("tick", ticked);
 

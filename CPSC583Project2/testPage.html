@@ -23,7 +23,7 @@
         .force("y", forceY)
         .force("collide", d3.forceCollide().radius(function (d) {
             if (d === root) {
-                return Math.random() * 50 + 100;
+                return Math.random() * 50 + 1;
             }
             return d.r + 0.5;
         }).iterations(5))
