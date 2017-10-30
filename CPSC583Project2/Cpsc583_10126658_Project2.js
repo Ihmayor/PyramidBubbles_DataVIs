@@ -211,14 +211,11 @@ d3.csv("FoodTrendData.csv",
        },
 
         function (data) {
-            JSON.parse("{}");
-
-            //Create Tree Diagram
             var svg = d3.select("svg"),
-            margin = 20,
-            diameter = +svg.attr("width"),
-            g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
-            console.log(g);
+    margin = 20,
+    diameter = +svg.attr("width"),
+    g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+
             var color = d3.scaleLinear()
                 .domain([-1, 5])
                 .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
@@ -228,19 +225,14 @@ d3.csv("FoodTrendData.csv",
                 .size([diameter - margin, diameter - margin])
                 .padding(2);
 
-            root = treeJson.root;
-            root = d3.hierarchy(root)
-                .sum(function (d) { return d.size; })
-                .sort(function (a, b) { return b.value - a.value; });
+            console.log(treeJson.root);
+            var root = d3.hierarchy(treeJson.root)
+                  .sum(function (d) { return d.size; })
+                  .sort(function (a, b) { return b.value - a.value; });
 
             var focus = root,
                 nodes = pack(root).descendants(),
                 view;
-            //        nodes.shift();
-
-            //      g.append('polygon')
-
-
 
             var circle = g.selectAll("circle")
               .data(nodes)
@@ -284,11 +276,10 @@ d3.csv("FoodTrendData.csv",
 
             function zoomTo(v) {
                 var k = diameter / v[2]; view = v;
-                node.attr("transform", function (d) {
-                    return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")";
-                });
-                circle.attr("r", function (d) { return d.r * k; });//
+                node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
+                circle.attr("r", function (d) { return d.r * k; });
             }
+
 
 
             //Polygon Collisiion Code
