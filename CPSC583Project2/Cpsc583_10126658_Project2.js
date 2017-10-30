@@ -7,6 +7,55 @@ var years = ["1974", "1975",
 "1989", "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001",
 "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014"]
 
+function getRandomInPolygon(polygonPoints) {
+    console.log(polygonPoints);
+    var minX = polygonPoints[polygonPoints.length - 2][0];
+    var maxX = polygonPoints[polygonPoints.length - 1][0];
+    var numX = Math.random() * (maxX - minX) + minX;
+
+
+    var minY = polygonPoints[0][1];
+    var maxY = polygonPoints[polygonPoints.length - 1][1];
+    var numY = Math.random() * (maxY - minY) + minY;
+
+    var point = [numX,numY]
+    console.log(point);
+    var loop = 0;
+    while (!pointInPolygon(point, polygonPoints))
+    {
+        if (loop > 100)
+            break;
+        console.log("looping?");
+        numX = Math.random() * (maxX - minX) + minX;
+        numY = Math.random() * (maxY - minY) + minY;
+        point = [numX, numY]
+        loop++;
+    }
+
+    return point;
+}
+
+// from https://github.com/substack/point-in-polygon
+pointInPolygon = function (point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    var xi, xj, i, intersect,
+        x = point[0],
+        y = point[1],
+        inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        xi = vs[i][0],
+        yi = vs[i][1],
+        xj = vs[j][0],
+        yj = vs[j][1],
+        intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+
 function findArray(desc1Name) {
     var returnArray = null;
     if (treeJson == {} || treeJson.root == null) {
@@ -269,7 +318,7 @@ d3.csv("FoodTrendData.csv",
             var polygons = initPolygons();
 
             viz.clusters = viz.clusters.map(function (c) {
-                c.data = d3.range(10).map(function () {
+                c.data = d3.range(50).map(function () {
                     return { size: 0.2 };
                 });
                 c.polygon = polygons[c.name];
@@ -290,8 +339,20 @@ d3.csv("FoodTrendData.csv",
                   .style('opacity', 0.3);
 
                 var center = d3.polygonCentroid(cluster.polygon);
-
-
+                var g  = svg.append('g').attr('class', 'bubbles ' + cluster.name);
+                
+                cluster.data.forEach(function (d,i) {
+                    console.log("index of bubble: " + i)
+                    var newPoint = getRandomInPolygon(cluster.polygon);
+                    g.append('circle')
+                        .attr('class', 'bubble')
+                        .attr('r', 2)
+                        .attr('stroke-width', 0.001)
+                        .attr('fill', '#000')
+                        .attr('cx', function () { return newPoint[0];})
+                        .attr('cy', function () { return newPoint[1];})
+                })
+                
                 //var bubbles = svg.append('g').attr('class', 'bubbles ' + cluster.name)
                 //    .selectAll('.bubble')
                 //     .data(cluster.data).enter()
@@ -301,37 +362,23 @@ d3.csv("FoodTrendData.csv",
                 //    .attr('stroke-width', 0.001)
                 //    .attr('fill', '#000')
 
-                //var test = svg.append('g').attr('class', 'bubbles ' + cluster.name)
-                //    .selectAll('.bubble')
-                //    .data(cluster.data).enter()
-                //    .append('circle')
-                //    .attr('class', 'bubble')
-                //    .attr('r', function (d) { return 3; })
-                //    .attr('stroke-width', 0.001)
-                //    .attr('fill', '#ebb')
-                //    .attr('cx',function(d,i){ return center[0]})
-                //    .attr('cy',function(d,i){ return center[1]})
+                   var force = d3.forceSimulation(cluster.data)
+                  .force('center', d3.forceCenter(center[0], center[1]))
+                  .force('polygonCollide',
+                      forceCollidePolygon(cluster.polygon)
+                          .radius(radius).iterations(5)
+                  )
+                  .force('collide', d3.forceCollide(radius).iterations(5))
+                  .on('tick', function () {
+                      svg.selectAll('.bubble').attr('transform', function () {
 
-                // improve bottom cluster positionning 
-                //if (center[1] > viz.size.height * 0.5) {
-                //    center[1] -= center[1] / 15;
-                //}
-                //var force = d3.forceSimulation(cluster.data)
-                //  .force('center', d3.forceCenter(center[0], center[1]))
-                //  .force('polygonCollide',
-                //      forceCollidePolygon(cluster.polygon)
-                //          .radius(radius).iterations(5)
-                //  )
-                //  .force('collide', d3.forceCollide(radius).iterations(5))
-                //  .on('tick', function () {
-                //      bubbles.attr('transform', function (d) {
-                //       //   return 'translate()';
-                //          return 'translate(' + d.x + ',' + d.y + ')';
-                //      });
-                //      test.attr('transform', function (d) {
-                //          return 'translate(' + d.x + ',' + d.y + ')';
-                //      });
-                //  });
+                          //   return 'translate()';
+                          return 'translate(' + d.x + ',' + d.y + ')';
+                      });
+                      test.attr('transform', function (d) {
+                          return 'translate(' + d.x + ',' + d.y + ')';
+                      });
+                  });
             }
 
             function initPolygons() {
@@ -389,6 +436,90 @@ d3.csv("FoodTrendData.csv",
             }
 
             // inspired from http://bl.ocks.org/larsenmtl/39a028da44db9e8daf14578cb354b5cb
+            function forceCollidePolygon(polygon, radius) {
+                var nodes, n, iterations = 1,
+                    max = Math.max,
+                    min = Math.min;
+                var absub = function (a, b) { return max(a, b) - min(a, b); };
+                var center = d3.polygonCentroid(polygon);
+
+                // took from d3-force/src/collide.js
+                if (typeof radius !== "function") radius = constant(radius == null ? 1 : +radius);
+
+                // took from d3-force/src/constant.js
+                function constant(x) {
+                    return function () {
+                        return x;
+                    };
+                }
+                // took from d3-force/src/jiggle.js
+                function jiggle() {
+                    return (Math.random() - 0.5) * 1e-6;
+                }
+
+                // adapted from http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+                function intersection(p0, p1, p2, p3) {
+                    var s1 = [p1[0] - p0[0], p1[1] - p0[1]];
+                    var s2 = [p3[0] - p2[0], p3[1] - p2[1]];
+                    // intersection compute
+                    var s, t;
+                    s = -s1[1] * (p0[0] - p2[0]) + s1[0] * (p0[1] - p3[1]);
+                    t = s2[0] * (p0[1] - p2[1]) - s2[1] * (p0[0] - p3[0]);
+                    s = s / (-s2[0] * s1[1] + s1[0] * s2[1]);
+                    t = t / (-s2[0] * s1[1] + s1[0] * s2[1]);
+
+                    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+                        // intersection coordinates
+                        return {
+                            x: p0[0] + (t * s1[0]),
+                            y: p0[1] + (t * s1[1])
+                        };
+                    }
+                    return false;
+                }
+
+                function force() {
+                    for (var l = 0; l < iterations; l++) {
+                        for (var k = 0; k < nodes.length; k++) {
+                            var node = nodes[k];
+                            var r = radius(node);
+                            var px = (node.x >= center[0] ? 1 : -1);
+                            var py = (node.y >= center[1] ? 1 : -1);
+
+                            var t = [node.x + px * r, node.y + py * r];
+
+                            // we loop over polygon's edges to check collisions
+                            for (var j = 0; j < polygon.length; j++) {
+                                var n = (j + 1) < polygon.length ? (j + 1) : 0;
+                                var p1 = polygon[j];
+                                var p2 = polygon[n];
+                                var i = intersection(p1, p2, center, t);
+                                if (i) {
+                                    // give a small velocity at the opposite of the collision point
+                                    // this can be tweaked
+                                    node.vx = -px / Math.sqrt(absub(i.x, t[0]) + jiggle());
+                                    node.vy = -py / Math.sqrt(absub(i.y, t[1]) + jiggle());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                force.iterations = function (_) {
+                    return arguments.length ? (iterations = +_, force) : iterations;
+                };
+
+                force.initialize = function (_) {
+                    n = (nodes = _).length;
+                };
+
+                force.radius = function (_) {
+                    return arguments.length ? (radius = typeof _ === "function" ? _ : constant(+_), force) : radius;
+                };
+                return force;
+            }
 
 
             //Step One Get nested nodes (Check) 
