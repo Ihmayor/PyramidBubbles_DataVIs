@@ -325,6 +325,7 @@ d3.csv("FoodTrendData.csv",
                 c.layout = initLayout(c);
                 return c;
             });
+            var debugStop = 0;
 
             function initLayout(cluster) {
                 var radius = function (d) {
@@ -362,6 +363,7 @@ d3.csv("FoodTrendData.csv",
                 //    .attr('stroke-width', 0.001)
                 //    .attr('fill', '#000')
 
+
                    var force = d3.forceSimulation(cluster.data)
                   .force('center', d3.forceCenter(center[0], center[1]))
                   .force('polygonCollide',
@@ -371,12 +373,17 @@ d3.csv("FoodTrendData.csv",
                   .force('collide', d3.forceCollide(radius).iterations(5))
                   .on('tick', function () {
                       svg.selectAll('.bubble').attr('transform', function () {
-
+                          
+                          debugStop++;
                           //   return 'translate()';
-                          return 'translate(' + d.x + ',' + d.y + ')';
-                      });
-                      test.attr('transform', function (d) {
-                          return 'translate(' + d.x + ',' + d.y + ')';
+                          var x = 0;
+                          var y = 0;
+                          if (debugStop < 20) {
+                              console.log(this);
+                              console.log(x);
+                              return 'translate()';
+                          } 
+                          return 'translate(' + x + ',' + y + ')';
                       });
                   });
             }
