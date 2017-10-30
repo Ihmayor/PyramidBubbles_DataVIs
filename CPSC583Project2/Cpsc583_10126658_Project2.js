@@ -8,7 +8,6 @@ var years = ["1974", "1975",
 "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014"]
 
 function getRandomInPolygon(polygonPoints) {
-    console.log(polygonPoints);
     var minX = polygonPoints[polygonPoints.length - 2][0];
     var maxX = polygonPoints[polygonPoints.length - 1][0];
     var numX = Math.random() * (maxX - minX) + minX;
@@ -19,13 +18,11 @@ function getRandomInPolygon(polygonPoints) {
     var numY = Math.random() * (maxY - minY) + minY;
 
     var point = [numX,numY]
-    console.log(point);
     var loop = 0;
     while (!pointInPolygon(point, polygonPoints))
     {
         if (loop > 100)
             break;
-        console.log("looping?");
         numX = Math.random() * (maxX - minX) + minX;
         numY = Math.random() * (maxY - minY) + minY;
         point = [numX, numY]
@@ -225,7 +222,6 @@ d3.csv("FoodTrendData.csv",
                 .size([diameter - margin, diameter - margin])
                 .padding(2);
 
-            console.log(treeJson.root);
             var root = d3.hierarchy(treeJson.root)
                   .sum(function (d) { return d.size; })
                   .sort(function (a, b) { return b.value - a.value; });
@@ -289,12 +285,7 @@ d3.csv("FoodTrendData.csv",
                 height = 700,
                 radius = 3;
 
-            //Create SVG based on above
-            var svg = d3.select("body").append("svg")
-              .attr("width", width)
-              .attr("height", height)
-              .style("background", "#eee");
-
+            
             //Main Visualization stsructure
             var viz = {
                 size: { width: 960, height: 800 },
@@ -308,7 +299,18 @@ d3.csv("FoodTrendData.csv",
 
             var polygons = initPolygons();
 
+            //Create SVG based on above
+            var svg = d3.select("body").append("svg")
+              .attr("width", width)
+              .attr("height", height)
+              .style("background", "#eee")
+
+            var debugStop = 0;
+
+
             viz.clusters = viz.clusters.map(function (c) {
+
+                //Determines Bubble Size
                 c.data = d3.range(50).map(function () {
                     return { size: 0.2 };
                 });
@@ -316,13 +318,16 @@ d3.csv("FoodTrendData.csv",
                 c.layout = initLayout(c);
                 return c;
             });
-            var debugStop = 0;
 
+
+            //initializes the pyramid
             function initLayout(cluster) {
+                
                 var radius = function (d) {
                     return d.size + 2.2;
                 }
 
+                //Place Pyramid Shape. Give fill and color.
                 var polygon = svg.append('polygon')
                   .attr('points', cluster.polygon)
                   .attr('stroke', '#000')
@@ -330,11 +335,14 @@ d3.csv("FoodTrendData.csv",
                   .attr('stroke-width', 2)
                   .style('opacity', 0.3);
 
+                //Find Center
                 var center = d3.polygonCentroid(cluster.polygon);
+
+
+/*
                 var g  = svg.append('g').attr('class', 'bubbles ' + cluster.name);
                 
                 cluster.data.forEach(function (d,i) {
-                    console.log("index of bubble: " + i)
                     var newPoint = getRandomInPolygon(cluster.polygon);
                     g.append('circle')
                         .attr('class', 'bubble')
@@ -344,41 +352,56 @@ d3.csv("FoodTrendData.csv",
                         .attr('cx', function () { return newPoint[0];})
                         .attr('cy', function () { return newPoint[1];})
                 })
-                
-                //var bubbles = svg.append('g').attr('class', 'bubbles ' + cluster.name)
-                //    .selectAll('.bubble')
-                //     .data(cluster.data).enter()
-                //     .append('circle')
-                //    .attr('class', 'bubble')
-                //    .attr('r', function (d) { return 10; })
-                //    .attr('stroke-width', 0.001)
-                //    .attr('fill', '#000')
+  */
+                console.log("polygon name: " + cluster.name);
+                var nodes = d3.range(20).map(function () { return { r: Math.random() * 12 + 4 }; }),
+                root = nodes[0];
+                var color = d3.scaleOrdinal().range(d3.schemeCategory20)
+
+                root.radius = 0;
+                root.fixed = true;
+
+                const forceX = d3.forceX(center[0]).strength(0.015)
+                const forceY = d3.forceY(center[1]).strength(0.015)
 
 
-                   var force = d3.forceSimulation(cluster.data)
-                  .force('center', d3.forceCenter(center[0], center[1]))
-                  .force('polygonCollide',
-                      forceCollidePolygon(cluster.polygon)
-                          .radius(radius).iterations(5)
-                  )
-                  .force('collide', d3.forceCollide(radius).iterations(5))
-                  .on('tick', function () {
-                      svg.selectAll('.bubble').attr('transform', function () {
-                          
-                          debugStop++;
-                          //   return 'translate()';
-                          var x = 0;
-                          var y = 0;
-                          if (debugStop < 20) {
-                              console.log(this);
-                              console.log(x);
-                              return 'translate()';
-                          } 
-                          return 'translate(' + x + ',' + y + ')';
-                      });
-                  });
+                var force = d3.forceSimulation()
+                .velocityDecay(0.2)
+                .force("x", forceX)
+                .force("y", forceY)
+                .force("collide", d3.forceCollide().radius(function (d) {
+                    if (d === root) {
+                        return Math.random() * 50 + 100;
+                    }
+                    return d.r + 0.5;
+                }).iterations(5))
+                .nodes(nodes).on("tick", ticked);
+
+                var g = svg.append('g').attr('class', 'bubbles ' + cluster.name);
+
+                g.selectAll("circle")
+                    .data(nodes.slice(1))
+                    .enter().append("circle")
+                    .attr('class','bubble')
+                    .attr("r", function (d) { return d.r; })
+                    .style("fill", function (d, i) { return color(i % 3); });
+
+                function ticked(e) {
+                    g.selectAll("circle")
+                        .attr("cx", function (d) { return d.x; })
+                        .attr("cy", function (d) { return d.y; });
+                };
+
+                g.on("mousemove", function () {
+                    var p1 = d3.mouse(this);
+                    root.fx = p1[0];
+                    root.fy = p1[1];
+                    force.alphaTarget(0.3).restart();//reheat the simulation
+                });
             }
 
+
+            //Initializes Polygons themselves. This is the shapes definitions.
             function initPolygons() {
                 // pseudo-triangles parameters
                 var ta = viz.polygons_params.ta, tb = viz.polygons_params.tb;
