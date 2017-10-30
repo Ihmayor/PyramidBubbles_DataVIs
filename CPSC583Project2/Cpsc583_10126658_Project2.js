@@ -1,8 +1,6 @@
-﻿
-
-
-//Outside Sources Used (Put in Report) :
-
+﻿//Outside Sources Used (Put in Report) :
+//Initial Bubbles Base: https://bl.ocks.org/lshir200/9e15800ee4434db7c9076bcd72f779ad#flare.json
+//Packing Triangles: https://roadtolarissa.com/zoomable-sierpinski-triangle-with-d3-js/
 var treeJson = {};
 var years = ["1974", "1975",
 "1976", "1977", "1978", "1979", "1980", "1981", "1982", "1983", "1984", "1985", "1986", "1987", "1988",
@@ -14,7 +12,7 @@ function findArray(desc1Name) {
     if (treeJson == {} || treeJson.root == null) {
     }
     else {
-        treeJson.root.forEach(function (array) {
+        treeJson.root.children.forEach(function (array) {
             if (array.name == desc1Name) {
                 returnArray = array;
             }
@@ -23,11 +21,24 @@ function findArray(desc1Name) {
     return returnArray;
 }
 
-
-function createItemObject(d)
+function findChild(name, parent)
 {
+    var returnArray = null;
+    parent.children.forEach(function(array)
+    {
+        if (array.name = name)
+        {
+            returnArray = array;
+        }
+    })
+    return returnArray;
+}
+
+
+function createItemObject(d) {
     return {
-        "itemFullNameName": d.desc2 + d.desc3 + d.desc4,
+        "name": d.desc2 + d.desc3 + d.desc4,
+        "children":[],
         "desc2": d.desc2,
         "desc3": d.desc3,
         "desc4": d.desc4,
@@ -72,7 +83,8 @@ function createItemObject(d)
         "2011": d.year2011,
         "2012": d.year2012,
         "2013": d.year2013,
-        "2014": d.year2014
+        "2014": d.year2014,
+        "size": d.year1993
     }
 
 }
@@ -122,37 +134,37 @@ d3.csv("FoodTrendData.csv",
            d.year2013 = +d.year2013;
            d.year2014 = +d.year2014;
            var foundArray;
-         
+
            if (typeof treeJson.root === 'undefined' || treeJson.root === null) {
                var item = createItemObject(d);
-               var root = [{
-                   "name": d.desc1, "children": [item]
-               }];
+               var root = {
+                   "name": "root", "children": [{
+                       "name": d.desc1, "children": [item], "size": d.year1993
+                   }]
+               };
                treeJson.root = root;
            }
-           else
-           {
+           else {
                //Get Desc 1 Array 
                foundArray = findArray(d.desc1);
-               if (foundArray == null)
-               {
+               if (foundArray == null) {
                    var item = createItemObject(d);
-                   var newArray = { "name": d.desc1, "children": [item] }
-                   treeJson.root.push(newArray);
+                   var newArray = { "name": d.desc1, "children": [item], "size": d.year1993 }
+                   treeJson.root.children.push(newArray);
                }
-               else
-               {
+               else {
                    var item = createItemObject(d);
                    foundArray.children.push(item);
+                   foundArray.size = foundArray.size + d.year1993;
                }
            }
            return d;
        },
 
         function (data) {
-            JSON.parse(jsonTest);
+            JSON.parse("{}");
 
-
+            //Create Tree Diagram
             var svg = d3.select("svg"),
             margin = 20,
             diameter = +svg.attr("width"),
@@ -167,84 +179,227 @@ d3.csv("FoodTrendData.csv",
                 .size([diameter - margin, diameter - margin])
                 .padding(2);
 
-            d3.json("flare.json", function (error, root) {
-                if (error) { alert(error); console.log(error);throw error; }
+            root = treeJson.root;
+            root = d3.hierarchy(root)
+                .sum(function (d) { return d.size; })
+                .sort(function (a, b) { return b.value - a.value; });
 
-                root = treeJson.root;
-                root = d3.hierarchy(root)
-                    .sum(function (d) { return d.size; })
-                    .sort(function (a, b) { return b.value - a.value; });
+            var focus = root,
+                nodes = pack(root).descendants(),
+                view;
+            //        nodes.shift();
 
-                var focus = root,
-                    nodes = pack(root).descendants(),
-                    view;
+            //      g.append('polygon')
 
-                var circle = g.selectAll("circle")
-                  .data(nodes)
-                  .enter().append("circle")
-                    .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-                    .style("fill", function (d) { return d.children ? color(d.depth) : null; })
-                    .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
 
-                var text = g.selectAll("text")
-                  .data(nodes)
-                  .enter().append("text")
-                    .attr("class", "label")
-                    .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
-                    .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
-                    .text(function (d) { return d.data.name; });
 
-                var node = g.selectAll("circle,text");
+            var circle = g.selectAll("circle")
+              .data(nodes)
+              .enter().append("circle")
+                .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+                .style("fill", function (d) { return d.children ? color(d.depth) : null; })
+                .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
 
-                svg
-                    .style("background", color(-1))
-                    .on("click", function () { zoom(root); });
+            var text = g.selectAll("text")
+              .data(nodes)
+              .enter().append("text")
+                .attr("class", "label")
+                .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
+                .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
+                .text(function (d) { return d.data.name; });
 
-                zoomTo([root.x, root.y, root.r * 2 + margin]);
+            var node = g.selectAll("circle,text");
 
-                function zoom(d) {
-                    var focus0 = focus; focus = d;
+            svg
+                .style("background", color(-1))
+                .on("click", function () { zoom(root); });
 
-                    var transition = d3.transition()
-                        .duration(d3.event.altKey ? 7500 : 750)
-                        .tween("zoom", function (d) {
-                            var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
-                            return function (t) { zoomTo(i(t)); };
-                        });
+            zoomTo([root.x, root.y, root.r * 2 + margin]);
 
-                    transition.selectAll("text")
-                      .filter(function (d) { return d.parent === focus || this.style.display === "inline"; })
-                        .style("fill-opacity", function (d) { return d.parent === focus ? 1 : 0; })
-                        .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
-                        .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
-                }
+            function zoom(d) {
+                var focus0 = focus; focus = d;
 
-                function zoomTo(v) {
-                    var k = diameter / v[2]; view = v;
-                    node.attr("transform", function (d) {
-                        console.log(d);
-                        d.r = 4;
-                        return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")";
+                var transition = d3.transition()
+                    .duration(d3.event.altKey ? 7500 : 750)
+                    .tween("zoom", function (d) {
+                        var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
+                        return function (t) { zoomTo(i(t)); };
                     });
-                    circle.attr("r", function (d) { return 2 * k; });//return d.r * k;
+
+                transition.selectAll("text")
+                  .filter(function (d) { return d.parent === focus || this.style.display === "inline"; })
+                    .style("fill-opacity", function (d) { return d.parent === focus ? 1 : 0; })
+                    .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
+                    .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
+            }
+
+            function zoomTo(v) {
+                var k = diameter / v[2]; view = v;
+                node.attr("transform", function (d) {
+                    return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")";
+                });
+                circle.attr("r", function (d) { return d.r * k; });//
+            }
+
+
+            //Polygon Collisiion Code
+            
+            //Initial Values
+            var width = 1000,
+                height = 700,
+                radius = 3;
+
+            //Create SVG based on above
+            var svg = d3.select("body").append("svg")
+              .attr("width", width)
+              .attr("height", height)
+              .style("background", "#eee");
+
+            //Main Visualization stsructure
+            var viz = {
+                size: { width: 960, height: 800 },
+                clusters: [{ name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }, { name: 'e' }],
+                colors: d3.scale,
+                polygons_params: {
+                    ta: 1 / 9, // the height of the top middle segment (in proportion of height)
+                    tb: 7 / 9 // the height of the 2 bottom left & right segments (in proportion of height)
                 }
+            };
+
+            var polygons = initPolygons();
+
+            viz.clusters = viz.clusters.map(function (c) {
+                c.data = d3.range(10).map(function () {
+                    return { size: 0.2 };
+                });
+                c.polygon = polygons[c.name];
+                c.layout = initLayout(c);
+                return c;
             });
 
+            function initLayout(cluster) {
+                var radius = function (d) {
+                    return d.size + 2.2;
+                }
+
+                var polygon = svg.append('polygon')
+                  .attr('points', cluster.polygon)
+                  .attr('stroke', '#000')
+                  .attr('fill', '#bbb')
+                  .attr('stroke-width', 2)
+                  .style('opacity', 0.3);
+
+                var center = d3.polygonCentroid(cluster.polygon);
 
 
-            console.log(treeJson);
+                //var bubbles = svg.append('g').attr('class', 'bubbles ' + cluster.name)
+                //    .selectAll('.bubble')
+                //     .data(cluster.data).enter()
+                //     .append('circle')
+                //    .attr('class', 'bubble')
+                //    .attr('r', function (d) { return 10; })
+                //    .attr('stroke-width', 0.001)
+                //    .attr('fill', '#000')
 
-            //Step  one get the shape tweening code 
+                //var test = svg.append('g').attr('class', 'bubbles ' + cluster.name)
+                //    .selectAll('.bubble')
+                //    .data(cluster.data).enter()
+                //    .append('circle')
+                //    .attr('class', 'bubble')
+                //    .attr('r', function (d) { return 3; })
+                //    .attr('stroke-width', 0.001)
+                //    .attr('fill', '#ebb')
+                //    .attr('cx',function(d,i){ return center[0]})
+                //    .attr('cy',function(d,i){ return center[1]})
 
-            // Step two split it up. 
+                // improve bottom cluster positionning 
+                //if (center[1] > viz.size.height * 0.5) {
+                //    center[1] -= center[1] / 15;
+                //}
+                //var force = d3.forceSimulation(cluster.data)
+                //  .force('center', d3.forceCenter(center[0], center[1]))
+                //  .force('polygonCollide',
+                //      forceCollidePolygon(cluster.polygon)
+                //          .radius(radius).iterations(5)
+                //  )
+                //  .force('collide', d3.forceCollide(radius).iterations(5))
+                //  .on('tick', function () {
+                //      bubbles.attr('transform', function (d) {
+                //       //   return 'translate()';
+                //          return 'translate(' + d.x + ',' + d.y + ')';
+                //      });
+                //      test.attr('transform', function (d) {
+                //          return 'translate(' + d.x + ',' + d.y + ')';
+                //      });
+                //  });
+            }
 
-            //Backup: Line graph across with points. 
+            function initPolygons() {
+                // pseudo-triangles parameters
+                var ta = viz.polygons_params.ta, tb = viz.polygons_params.tb;
+                var w = viz.size.width, h = viz.size.height;
 
-            //Wrap around can or items
+                //Height Split By 
+                var h2 = h / 5;
 
-            
+                //Current Polygon Height Level
+                var h3 = h2 * 1;
+
+                //Degree for level split calculation
+                var angDeg = 59;
+
+                //Degree conversion
+                var angRad = angDeg * (Math.PI / 180)
+
+                //Calculate Angle
+                var cotanAng = 1 / Math.tan(angRad);
+
+                //Calculate Right-Most Point For Width
+                var w2 = (cotanAng * h3) + (w * 0.5);
+
+                //Calculate Left Most Point Width
+                var w3 = (w * 0.5) - cotanAng * h3;
+
+                var tc = 7 / 9;
+                var points = {
+                    a: [0, 0],
+                    b: [w, 0],
+                    c: [w, h],
+                    d: [0, h],
+                    e: [w / 2, 0],
+                    f: [w, tc * h],
+                    g: [0, tc * h],
+                    h: [w / 2, ta * h],
+                    i: [(w * 0.5) - cotanAng * h2, tc * h2],
+                    j: [(cotanAng * h2 + w / 2), tc * h2],
+                    k: [(w * 0.5) - cotanAng * h2 * 2, tc * h2 * 2],
+                    l: [(cotanAng * h2 * 2 + w / 2), tc * h2 * 2],
+                    m: [(w * 0.5) - cotanAng * h2 * 3, tc * h2 * 3],
+                    n: [(cotanAng * h2 * 3 + w / 2), tc * h2 * 3],
+                    o: [(w * 0.5) - cotanAng * h2 * 4, tc * h2 * 4],
+                    p: [(cotanAng * h2 * 4 + w / 2), tc * h2 * 4]
+                };
+                return {
+                    d: [points.e, points.j, points.i],
+                    e: [points.i, points.j, points.l, points.k],
+                    a: [points.k, points.l, points.n, points.m],
+                    b: [points.n, points.m, points.o, points.p],
+                    c: [points.p, points.o, points.g, points.f]
+                };
+            }
+
+            // inspired from http://bl.ocks.org/larsenmtl/39a028da44db9e8daf14578cb354b5cb
+
+
+            //Step One Get nested nodes (Check) 
+            //Step Two Get Nested Notes inside force layout into triangle areas .
+            //Step Three Change triangle ares to polygons mathing food pyramid
+            //Step Four change insides to circles/squares
+            //Step five: Add slider to change size of nested items inside.
+
 
         });
+
 
 
 
