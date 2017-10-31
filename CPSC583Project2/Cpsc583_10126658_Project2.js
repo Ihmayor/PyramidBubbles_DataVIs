@@ -281,14 +281,14 @@ d3.csv("FoodTrendData.csv",
             //Polygon Collisiion Code
             
             //Initial Values
-            var width = 1000,
-                height = 700,
+            var width = 1400,
+                height =width*1.2,
                 radius = 3;
 
             
             //Main Visualization stsructure
             var viz = {
-                size: { width: 960, height: 800 },
+                size: { width: width, height:height },
                 clusters: [{ name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }, { name: 'e' }],
                 colors: d3.scale,
                 polygons_params: {
@@ -354,7 +354,7 @@ d3.csv("FoodTrendData.csv",
                 })
   */
                 console.log("polygon name: " + cluster.name);
-                var nodes = d3.range(20).map(function () {
+                var nodes = d3.range(1000).map(function () {
                     var point = getRandomInPolygon(cluster.polygon);
                     return { r: 4 , x:point[0], y:point[1]};
                 }),
