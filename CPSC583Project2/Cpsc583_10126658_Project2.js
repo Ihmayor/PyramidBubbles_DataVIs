@@ -1,6 +1,9 @@
 ﻿//Outside Sources Used (Put in Report) :
 //Initial Bubbles Base: https://bl.ocks.org/lshir200/9e15800ee4434db7c9076bcd72f779ad#flare.json
+//Coded used for polygon collision and creation: http://bl.ocks.org/pbellon/raw/4b875d2ab7019c0029b636523b34e074/
 //Packing Triangles: https://roadtolarissa.com/zoomable-sierpinski-triangle-with-d3-js/
+//https://bl.ocks.org/mbostock/4699541
+
 var treeJson = {};
 var years = ["1974", "1975",
 "1976", "1977", "1978", "1979", "1980", "1981", "1982", "1983", "1984", "1985", "1986", "1987", "1988",
@@ -11,7 +14,6 @@ var years = ["1974", "1975",
 
 
 function getRandomInPolygon(polygonPoints) {
-    console.log(polygonPoints);
     var minX = polygonPoints[polygonPoints.length - 2][0];
     var maxX = polygonPoints[polygonPoints.length - 1][0];
     var numX = Math.random() * (maxX - minX) + minX;
@@ -35,19 +37,54 @@ function getRandomInPolygon(polygonPoints) {
 }
 
 
+// from https://github.com/substack/point-in-polygon
+pointInPolygon = function (point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+    var xi, xj, i, intersect,
+        x = point[0],
+        y = point[1],
+        inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        xi = vs[i][0],
+        yi = vs[i][1],
+        xj = vs[j][0],
+        yj = vs[j][1],
+        intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+pointInCircle = function (point, radius, center) {
+    var diffX = center[0] - point[0];
+    var diffY = center[1] - point[1];
+    var dist = Math.sqrt(diffX * diffX + diffY * diffY);
+    return Math.abs(dist) <= radius
+}
+
+
 function findPolygon(name, clusters) {
     return clusters.filter(function (cluster) {
         return cluster.name === name;
     })[0].polygon;
 }
 
-function findGroupPolygon(desc1Name, clusters)
-{
+function findPolygonBound(polygon) {
+    if (polygon.length == 3) {
+        return [[polyon[0].y, polygon[1].x], [polygon[0].y, polygon[2].x], polygon[1], polygon[2]];
+    }
+    else {
+        return [polyon[0], polygon[1], polygon[2], polygon[3]];
+    }
+}
+
+function findGroupPolygon(desc1Name, clusters) {
     var foundPolygon;
-    for(var i = 0 ;i <foodPyramidMapping.length;i++)
-    {
+    for (var i = 0 ; i < foodPyramidMapping.length; i++) {
         if (foodPyramidMapping[i].list.indexOf(desc1Name) > -1) {
-            foundPolygon = findPolygon(foodPyramidMapping[i].name,clusters);
+            foundPolygon = findPolygon(foodPyramidMapping[i].name, clusters);
         }
     }
     return foundPolygon;
@@ -91,28 +128,6 @@ var foodPyramidMapping =
                 "Flour"]
     }
 ]
-
-
-// from https://github.com/substack/point-in-polygon
-pointInPolygon = function (point, vs) {
-    // ray-casting algorithm based on
-    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-    var xi, xj, i, intersect,
-        x = point[0],
-        y = point[1],
-        inside = false;
-    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-        xi = vs[i][0],
-        yi = vs[i][1],
-        xj = vs[j][0],
-        yj = vs[j][1],
-        intersect = ((yi > y) != (yj > y))
-            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-    }
-    return inside;
-}
-
 
 function findArray(desc1Name) {
     var returnArray = null;
@@ -218,7 +233,7 @@ function createDeepChild(name, d) {
     return {
         "name": name.trim(),
         "children": [],
-        "desc1":d.desc1,
+        "desc1": d.desc1,
         "desc2": d.desc2,
         "desc3": d.desc3,
         "desc4": d.desc4,
@@ -411,7 +426,7 @@ d3.csv("FoodTrendData.csv",
             //Initial Values
             var width = +svg.attr("width"),
                 height = +svg.attr("height"),
-                radius = 3;
+                radius = 10;
 
             //Main Visualization stsructure
             var viz = {
@@ -546,27 +561,32 @@ d3.csv("FoodTrendData.csv",
 
             nodes.forEach(function (node) {
                 if (node.parent.data.name == "root") {
-                    var polygonCluster = findGroupPolygon(node.data.name,viz.clusters);
+                    var polygonCluster = findGroupPolygon(node.data.name, viz.clusters);
                     var point = getRandomInPolygon(polygonCluster);
                     var offsetX = 350;
                     var diffX = (point[0] - offsetX) - node.x;
                     var diffY = point[1] - node.y;
                     node.x += diffX;
                     node.y += diffY;
+                    node.polygon = polygonCluster;
                     node.children.forEach(function (childNode) {
                         childNode.x += diffX;
                         childNode.y += diffY;
+                        childNode.polygon = polygonCluster;
                         childNode.children.forEach(function (childNode) {
                             childNode.x += diffX;
                             childNode.y += diffY;
+                            childNode.polygon = polygonCluster;
                             if (childNode.children != null) {
                                 childNode.children.forEach(function (childNode) {
                                     childNode.x += diffX;
                                     childNode.y += diffY;
+                                    childNode.polygon = polygonCluster;
                                     if (childNode.children != null) {
                                         childNode.children.forEach(function (childNode) {
                                             childNode.x += diffX;
                                             childNode.y += diffY;
+                                            childNode.polygon = polygonCluster;
                                         })
                                     }
                                 })
@@ -575,7 +595,6 @@ d3.csv("FoodTrendData.csv",
                     })
                 }
             })
-
 
             var text = g.selectAll("text")
                         .data(nodes)
@@ -595,12 +614,13 @@ d3.csv("FoodTrendData.csv",
 
             function zoom(d, circle, node) {
                 var focus0 = focus; focus = d;
-                console.log(d);
                 var transition = d3.transition()
                     .duration(d3.event.altKey ? 7500 : 750)
                     .tween("zoom", function (d) {
                         var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
-                        return function (t) { zoomTo(i(t), node, circle); };
+                        return function (t) {
+                            zoomTo(i(t), node, circle);
+                        };
                     });
 
                 transition.selectAll("text")
@@ -608,13 +628,25 @@ d3.csv("FoodTrendData.csv",
                     .style("fill-opacity", function (d) { return d.parent === focus ? 1 : 0; })
                     .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
                     .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
+
+                console.log("observations");
+                zoomToBox([focus.x-focus0.x, focus.y-focus0.y], 1)
+
             }
 
+            function zoomToBox(translate, scale)
+            {
+                g2.transition()
+                    .duration(750)
+                    .style("stroke-width", 1.5 / scale + "px")
+                    .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+            }
 
             function zoomTo(v, node, circle) {
                 var k = diameter / v[2]; view = v;
                 node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
                 circle.attr("r", function (d) { return d.r * k; });
+
             }
 
 
