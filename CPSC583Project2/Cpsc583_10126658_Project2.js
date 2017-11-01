@@ -7,6 +7,9 @@ var years = ["1974", "1975",
 "1989", "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001",
 "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014"]
 
+
+
+
 function getRandomInPolygon(polygonPoints) {
     var minX = polygonPoints[polygonPoints.length - 2][0];
     var maxX = polygonPoints[polygonPoints.length - 1][0];
@@ -337,12 +340,11 @@ d3.csv("FoodTrendData.csv",
        },
 
         function (data) {
-            console.log(treeJson.root);
             var svg = d3.select("svg"),
             margin = 20,
-            diameter = +svg.attr("width"),
+            diameter = 500,
             g2 = svg.append("g"),
-            g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+            g = svg.append("g").attr("transform", "translate(600," + diameter / 2 + ")");
 
             //Polygon Code
 
@@ -354,7 +356,7 @@ d3.csv("FoodTrendData.csv",
             //Main Visualization stsructure
             var viz = {
                 size: { width: width, height: height },
-                clusters: [{ name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }, { name: 'e' }],
+                clusters: [{ name: 'MilkEggsFish' }, {name: 'VegetablesFruit' }, { name: 'Grain' }, { name: 'FatsOilsSugarAlcohol' }, { name: 'MeatPoultry' }],
                 colors: d3.scale,
                 polygons_params: {
                     ta: 1 / 9, // the height of the top middle segment (in proportion of height)
@@ -442,16 +444,16 @@ d3.csv("FoodTrendData.csv",
                     p: [(cotanAng * h2 * 4 + w / 2), tc * h2 * 4]
                 };
                 return {
-                    d: [points.e, points.j, points.i],
-                    e: [points.i, points.j, points.l, points.k],
-                    a: [points.k, points.l, points.n, points.m],
-                    b: [points.n, points.m, points.o, points.p],
-                    c: [points.p, points.o, points.g, points.f]
+                    FatsOilsSugarAlcohol: [points.e, points.j, points.i],
+                    MeatPoultry: [points.i, points.j, points.l, points.k],
+                    MilkEggsFish: [points.k, points.l, points.n, points.m],
+                    VegetablesFruit: [points.n, points.m, points.o, points.p],
+                    Grain: [points.p, points.o, points.g, points.f]
                 };
             }
 
 
-
+            //Handles Node Code for circles
             var color = d3.scaleLinear()
                 .domain([-1, 5])
                 .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
@@ -463,13 +465,7 @@ d3.csv("FoodTrendData.csv",
 
             var childrenRef = [];
 
-
-            treeJson.root.children.forEach(function (child)
-            {
-
-            })
-            var child = treeJson.root;
-            var root = d3.hierarchy(child)
+            var root = d3.hierarchy(treeJson.root)
                     .sum(function (d) { return d.size; })
                     .sort(function (a, b) { return b.value - a.value; });
 
@@ -481,11 +477,37 @@ d3.csv("FoodTrendData.csv",
             var circle = g.selectAll("circle")
           .data(nodes)
           .enter().append("circle")
-            .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+            .attr("cy", function (d) {
+
+            })
+            .attr("class", function (d) {return d.parent ? d.children ? "node"+d.data.name : "node node--leaf" : "node node--root"; })
             .style("fill", function (d) { return d.children ? color(d.depth) : null; })
             .on("click", function (d) { if (focus !== d) zoom(d,circle, g.selectAll("circle,text")), d3.event.stopPropagation(); });
+            
+            nodes.forEach(function (node) {
+                if (node.parent.data.name == "root") {
+                    console.log(node.data.name);
+                    var transformPoint = find
+                    node.x += 100;
+                    node.children.forEach(function (childNode) {
+                        childNode.x += 100;
+                        childNode.children.forEach(function (childNode) {
+                            childNode.x += 100;
+                            if (childNode.children != null) {
+                                childNode.children.forEach(function (childNode) {
+                                    childNode.x += 100;
+                                    if (childNode.children != null) {
+                                        childNode.children.forEach(function (childNode) {
+                                            childNode.x += 100;
+                                        })
+                                    }
+                                })
+                            }
+                        })
+                    })
+                }
+            })
 
-            childrenRef.push(circle);
 
             var text = g.selectAll("text")
                         .data(nodes)
@@ -505,7 +527,7 @@ d3.csv("FoodTrendData.csv",
 
             function zoom(d, circle, node) {
                 var focus0 = focus; focus = d;
-
+                console.log(d);
                 var transition = d3.transition()
                     .duration(d3.event.altKey ? 7500 : 750)
                     .tween("zoom", function (d) {
@@ -522,7 +544,7 @@ d3.csv("FoodTrendData.csv",
 
 
             function zoomTo(v, node, circle) {
-                var k = 0.3; view = v;
+                var k = diameter / v[2]; view = v;
                 node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
                 circle.attr("r", function (d) { return d.r * k; });
             }
