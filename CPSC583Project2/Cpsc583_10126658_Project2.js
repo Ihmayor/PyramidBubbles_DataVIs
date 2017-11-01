@@ -209,9 +209,9 @@ d3.csv("FoodTrendData.csv",
 
         function (data) {
             var svg = d3.select("svg"),
-    margin = 20,
-    diameter = +svg.attr("width"),
-    g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+            margin = 20,
+            diameter = +svg.attr("width"),
+            g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
 
             var color = d3.scaleLinear()
                 .domain([-1, 5])
@@ -247,6 +247,11 @@ d3.csv("FoodTrendData.csv",
 
             var node = g.selectAll("circle,text");
 
+            nodes.shift();
+
+            console.log("node: ");
+            console.log(nodes);
+
             svg
                 .style("background", color(-1))
                 .on("click", function () { zoom(root); });
@@ -281,8 +286,8 @@ d3.csv("FoodTrendData.csv",
             //Polygon Collisiion Code
             
             //Initial Values
-            var width = 1400,
-                height =width*1.2,
+            var width = +svg.attr("width"),
+                height =+svg.attr("height"),
                 radius = 3;
 
             
@@ -300,10 +305,10 @@ d3.csv("FoodTrendData.csv",
             var polygons = initPolygons();
 
             //Create SVG based on above
-            var svg = d3.select("body").append("svg")
-              .attr("width", width)
-              .attr("height", height)
-              .style("background", "#eee")
+            //var svg = d3.select("body").append("svg")
+            //  .attr("width", width)
+            //  .attr("height", height)
+            //  .style("background", "#eee")
 
             var debugStop = 0;
 
@@ -353,59 +358,59 @@ d3.csv("FoodTrendData.csv",
                         .attr('cy', function () { return newPoint[1];})
                 })
   */
-                console.log("polygon name: " + cluster.name);
-                var nodes = d3.range(1000).map(function () {
-                    var point = getRandomInPolygon(cluster.polygon);
-                    return { r: 4 , x:point[0], y:point[1]};
-                }),
-                root = nodes[0];
-                var color = d3.scaleOrdinal().range(d3.schemeCategory20)
+                //console.log("polygon name: " + cluster.name);
+                //var nodes = d3.range(1000).map(function () {
+                //    var point = getRandomInPolygon(cluster.polygon);
+                //    return { r: 4 , x:point[0], y:point[1]};
+                //}),
+                //root = nodes[0];
+                //var color = d3.scaleOrdinal().range(d3.schemeCategory20)
 
-                root.radius = 0;
-                root.fixed = true;
+                //root.radius = 0;
+                //root.fixed = true;
 
-                const forceX = d3.forceX(center[0]).strength(0.015)
-                const forceY = d3.forceY(center[1]).strength(0.015)
-
-
-                var force = d3.forceSimulation()
-                .velocityDecay(0.2)
-                .force("x", forceX)
-                .force("y", forceY)
-                .force('center', d3.forceCenter(center[0], center[1]))
-                .force('polygonCollide', forceCollidePolygon(cluster.polygon, 2))
-                .force("collide", d3.forceCollide().radius(function (d) {
-                    if (d === root) {
-                        return Math.random() * 50 ;
-                    }
-                    return d.r + 0.2;
-                }).iterations(5))
-                .nodes(nodes).on("tick", ticked);
-
-                var g = svg.append('g').attr('class', 'bubbles ' + cluster.name);
+                //const forceX = d3.forceX(center[0]).strength(0.015)
+                //const forceY = d3.forceY(center[1]).strength(0.015)
 
 
-                g.selectAll("circle")
-                    .data(nodes.slice(1))
-                    .enter().append("circle")
-                    .attr('class','bubble')
-                    .attr("r", function (d) { return d.r; })
-                    .attr("cy", function (d) { return d.y;})
-                    .attr("cx", function (d) { return d.x;})
-                    .style("fill", function (d, i) { return color(i % 3); });
+                //var force = d3.forceSimulation()
+                //.velocityDecay(0.2)
+                //.force("x", forceX)
+                //.force("y", forceY)
+                //.force('center', d3.forceCenter(center[0], center[1]))
+                //.force('polygonCollide', forceCollidePolygon(cluster.polygon, 2))
+                //.force("collide", d3.forceCollide().radius(function (d) {
+                //    if (d === root) {
+                //        return Math.random() * 50 ;
+                //    }
+                //    return d.r + 0.2;
+                //}).iterations(5))
+                //.nodes(nodes).on("tick", ticked);
 
-                function ticked(e) {
-                    g.selectAll("circle")
-                        .attr("cx", function (d) { return d.x; })
-                        .attr("cy", function (d) { return d.y; });
-                };
+                //var g = svg.append('g').attr('class', 'bubbles ' + cluster.name);
 
-                g.on("mousemove", function () {
-                    var p1 = d3.mouse(this);
-                    root.fx = p1[0];
-                    root.fy = p1[1];
-                    force.alphaTarget(0.3).restart();//reheat the simulation
-                });
+
+                //g.selectAll("circle")
+                //    .data(nodes.slice(1))
+                //    .enter().append("circle")
+                //    .attr('class','bubble')
+                //    .attr("r", function (d) { return d.r; })
+                //    .attr("cy", function (d) { return d.y;})
+                //    .attr("cx", function (d) { return d.x;})
+                //    .style("fill", function (d, i) { return color(i % 3); });
+
+                //function ticked(e) {
+                //    g.selectAll("circle")
+                //        .attr("cx", function (d) { return d.x; })
+                //        .attr("cy", function (d) { return d.y; });
+                //};
+
+                //g.on("mousemove", function () {
+                //    var p1 = d3.mouse(this);
+                //    root.fx = p1[0];
+                //    root.fy = p1[1];
+                //    force.alphaTarget(0.3).restart();//reheat the simulation
+                //});
             }
 
 
