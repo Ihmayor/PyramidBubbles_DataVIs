@@ -70,7 +70,7 @@ function findChild(name, parent) {
     name = name.trim();
     var returnArray = null;
     parent.children.forEach(function (array) {
-        if (array.name = name) {
+        if (array.name.trim() == name) {
             returnArray = array;
         }
     })
@@ -84,8 +84,8 @@ function createItemObject(d) {
         "fullName": d.desc2+ d.desc3 + d.desc4,
         "children": [],
         "desc2": d.desc2,
-        "desc3": d.desc3,
-        "desc4": d.desc4,
+        "desc3": d.desc3 != null && d.desc3 != ""? d.desc3.trim():"",
+        "desc4": d.desc4 != null && d.desc4 != "" ? d.desc4.trim() : "",
         "code": d.code,
         "1974": d.year1974,
         "1975": d.year1975,
@@ -152,7 +152,7 @@ function createNestedChild(d) {
 
 function createDeepChild(name, d) {
     return {
-        "name": name,
+        "name": name.trim(),
         "children": [],
         "desc2": d.desc2,
         "desc3": d.desc3,
@@ -286,8 +286,9 @@ d3.csv("FoodTrendData.csv",
 
                    //Set References
                    foundArray.children.forEach(function (child) {
+                       child.desc2 = child.desc2.trim();
                        if (desc2Child == null)
-                           desc2Child = findChild(d.desc2, child);
+                           desc2Child = findChild(d.desc2.trim(), child);
                        if (desc2Child != null &&
                            (desc2Child.children.length > 0) &&
                            (d.desc3 != '' && d.desc3 != null)) {
@@ -302,7 +303,7 @@ d3.csv("FoodTrendData.csv",
                            }
                            if (child.desc2 != d.desc2 && child.desc2.length == d.desc2.length) {
                                if (d.desc2 == "Liver") {
-                                   console.log("WHAAAAAT");
+                                   console.log("WHAAAAAT1");
                                    console.log("Child");
                                    console.log(child.desc2);
                                    console.log("Desc Row d");
@@ -366,131 +367,18 @@ d3.csv("FoodTrendData.csv",
        },
 
         function (data) {
+
             var svg = d3.select("svg"),
             margin = 20,
             diameter = +svg.attr("width"),
             g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
 
-            var color = d3.scaleLinear()
-                .domain([-1, 5])
-                .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
-                .interpolate(d3.interpolateHcl);
-
-            var pack = d3.pack()
-                .size([diameter - margin, diameter - margin])
-                .padding(2);
-
-            var childrenRef = [];
-
-
-
-            var child = treeJson.root.children[0];
-            console.log(child);
-            var root = d3.hierarchy(child)
-                    .sum(function (d) { return d.size; })
-                    .sort(function (a, b) { return b.value - a.value; });
-
-            var focus = root,
-                nodes = pack(root).descendants(),
-                view;
-
-
-            var circle = g.selectAll("circle")
-          .data(nodes)
-          .enter().append("circle")
-            .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-            .style("fill", function (d) { return d.children ? color(d.depth) : null; })
-            .on("click", function (d) { if (focus !== d) zoom(d,circle, g.selectAll("circle,text")), d3.event.stopPropagation(); });
-
-            childrenRef.push(circle);
-
-            var text = g.selectAll("text")
-                        .data(nodes)
-                        .enter().append("text")
-                        .attr("class", "label")
-                        .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
-                        .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
-                        .text(function (d) { return d.data.name; });
-
-            var node = g.selectAll("circle,text");
-
-            svg
-            .style("background", color(-1))
-            .on("click", function () { zoom(root, circle, node); });
-
-            zoomTo([root.x, root.y, root.r * 2 + margin], node, circle);
-
-
-
-
-            //var root = d3.hierarchy(treeJson.root)
-            //      .sum(function (d) { return d.size; })
-            //      .sort(function (a, b) { return b.value - a.value; });
-
-            //var focus = root,
-            //    nodes = pack(root).descendants(),
-            //    view;
-
-            //var circle = g.selectAll("circle")
-            //  .data(nodes)
-            //  .enter().append("circle")
-            //    .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-            //    .style("fill", function (d) { return d.children ? color(d.depth) : null; })
-            //    .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
-
-            //var text = g.selectAll("text")
-            //  .data(nodes)
-            //  .enter().append("text")
-            //    .attr("class", "label")
-            //    .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
-            //    .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
-            //    .text(function (d) { return d.data.name; });
-
-
-            //nodes.shift();
-
-            //console.log("node: ");
-            //console.log(nodes);
-
-            //svg
-            //    .style("background", color(-1))
-            //    .on("click", function () { zoom(root); });
-
-            //zoomTo([root.x, root.y, root.r * 2 + margin]);
-
-            function zoom(d, circle, node) {
-                var focus0 = focus; focus = d;
-
-                var transition = d3.transition()
-                    .duration(d3.event.altKey ? 7500 : 750)
-                    .tween("zoom", function (d) {
-                        var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
-                        return function (t) { zoomTo(i(t), node, circle); };
-                    });
-
-                transition.selectAll("text")
-                  .filter(function (d) { return d.parent === focus || this.style.display === "inline"; })
-                    .style("fill-opacity", function (d) { return d.parent === focus ? 1 : 0; })
-                    .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
-                    .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
-            }
-
-
-            function zoomTo(v, node, circle) {
-                var k = diameter / v[2]; view = v;
-                node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
-                circle.attr("r", function (d) { return d.r * k; });
-            }
-
-
-
-            //Polygon Collisiion Code
+            //Polygon Code
 
             //Initial Values
             var width = +svg.attr("width"),
                 height = +svg.attr("height"),
                 radius = 3;
-
 
             //Main Visualization stsructure
             var viz = {
@@ -504,16 +392,7 @@ d3.csv("FoodTrendData.csv",
             };
 
             var polygons = initPolygons();
-
-            //Create SVG based on above
-            //var svg = d3.select("body").append("svg")
-            //  .attr("width", width)
-            //  .attr("height", height)
-            //  .style("background", "#eee")
-
             var debugStop = 0;
-
-
             viz.clusters = viz.clusters.map(function (c) {
 
                 //Determines Bubble Size
@@ -534,7 +413,7 @@ d3.csv("FoodTrendData.csv",
                 }
 
                 //Place Pyramid Shape. Give fill and color.
-                var polygon = svg.append('polygon')
+                var polygon = g.append('polygon')
                   .attr('points', cluster.polygon)
                   .attr('stroke', '#000')
                   .attr('fill', '#bbb')
@@ -543,75 +422,6 @@ d3.csv("FoodTrendData.csv",
 
                 //Find Center
                 var center = d3.polygonCentroid(cluster.polygon);
-
-
-                /*
-                                var g  = svg.append('g').attr('class', 'bubbles ' + cluster.name);
-                                
-                                cluster.data.forEach(function (d,i) {
-                                    var newPoint = getRandomInPolygon(cluster.polygon);
-                                    g.append('circle')
-                                        .attr('class', 'bubble')
-                                        .attr('r', 2)
-                                        .attr('stroke-width', 0.001)
-                                        .attr('fill', '#000')
-                                        .attr('cx', function () { return newPoint[0];})
-                                        .attr('cy', function () { return newPoint[1];})
-                                })
-                  */
-                //console.log("polygon name: " + cluster.name);
-                //var nodes = d3.range(1000).map(function () {
-                //    var point = getRandomInPolygon(cluster.polygon);
-                //    return { r: 4 , x:point[0], y:point[1]};
-                //}),
-                //root = nodes[0];
-                //var color = d3.scaleOrdinal().range(d3.schemeCategory20)
-
-                //root.radius = 0;
-                //root.fixed = true;
-
-                //const forceX = d3.forceX(center[0]).strength(0.015)
-                //const forceY = d3.forceY(center[1]).strength(0.015)
-
-
-                //var force = d3.forceSimulation()
-                //.velocityDecay(0.2)
-                //.force("x", forceX)
-                //.force("y", forceY)
-                //.force('center', d3.forceCenter(center[0], center[1]))
-                //.force('polygonCollide', forceCollidePolygon(cluster.polygon, 2))
-                //.force("collide", d3.forceCollide().radius(function (d) {
-                //    if (d === root) {
-                //        return Math.random() * 50 ;
-                //    }
-                //    return d.r + 0.2;
-                //}).iterations(5))
-                //.nodes(nodes).on("tick", ticked);
-
-                //var g = svg.append('g').attr('class', 'bubbles ' + cluster.name);
-
-
-                //g.selectAll("circle")
-                //    .data(nodes.slice(1))
-                //    .enter().append("circle")
-                //    .attr('class','bubble')
-                //    .attr("r", function (d) { return d.r; })
-                //    .attr("cy", function (d) { return d.y;})
-                //    .attr("cx", function (d) { return d.x;})
-                //    .style("fill", function (d, i) { return color(i % 3); });
-
-                //function ticked(e) {
-                //    g.selectAll("circle")
-                //        .attr("cx", function (d) { return d.x; })
-                //        .attr("cy", function (d) { return d.y; });
-                //};
-
-                //g.on("mousemove", function () {
-                //    var p1 = d3.mouse(this);
-                //    root.fx = p1[0];
-                //    root.fy = p1[1];
-                //    force.alphaTarget(0.3).restart();//reheat the simulation
-                //});
             }
 
 
@@ -669,6 +479,86 @@ d3.csv("FoodTrendData.csv",
                     c: [points.p, points.o, points.g, points.f]
                 };
             }
+
+
+
+            var color = d3.scaleLinear()
+                .domain([-1, 5])
+                .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
+                .interpolate(d3.interpolateHcl);
+
+            var pack = d3.pack()
+                .size([diameter - margin, diameter - margin])
+                .padding(2);
+
+            var childrenRef = [];
+
+
+            treeJson.root.children.forEach(function (child)
+            {
+
+            })
+            var child = treeJson.root.children[0];
+            var root = d3.hierarchy(child)
+                    .sum(function (d) { return d.size; })
+                    .sort(function (a, b) { return b.value - a.value; });
+
+            var focus = root,
+                nodes = pack(root).descendants(),
+                view;
+            nodes.shift();
+
+            var circle = g.selectAll("circle")
+          .data(nodes)
+          .enter().append("circle")
+            .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+            .style("fill", function (d) { return d.children ? color(d.depth) : null; })
+            .on("click", function (d) { if (focus !== d) zoom(d,circle, g.selectAll("circle,text")), d3.event.stopPropagation(); });
+
+            childrenRef.push(circle);
+
+            var text = g.selectAll("text")
+                        .data(nodes)
+                        .enter().append("text")
+                        .attr("class", "label")
+                        .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
+                        .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
+                        .text(function (d) { return d.data.name; });
+
+            var node = g.selectAll("circle,text");
+
+            svg
+            .style("background", color(-1))
+            .on("click", function () { zoom(root, circle, node); });
+
+            zoomTo([root.x, root.y, root.r * 2 + margin], node, circle);
+
+            function zoom(d, circle, node) {
+                var focus0 = focus; focus = d;
+
+                var transition = d3.transition()
+                    .duration(d3.event.altKey ? 7500 : 750)
+                    .tween("zoom", function (d) {
+                        var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
+                        return function (t) { zoomTo(i(t), node, circle); };
+                    });
+
+                transition.selectAll("text")
+                  .filter(function (d) { return d.parent === focus || this.style.display === "inline"; })
+                    .style("fill-opacity", function (d) { return d.parent === focus ? 1 : 0; })
+                    .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
+                    .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
+            }
+
+
+            function zoomTo(v, node, circle) {
+                var k = diameter / v[2]; view = v;
+                node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
+                circle.attr("r", function (d) { return d.r * k; });
+            }
+
+
+
             // inspired from http://bl.ocks.org/larsenmtl/39a028da44db9e8daf14578cb354b5cb
             function forceCollidePolygon(polygon, radius) {
                 console.log("interesting...");
