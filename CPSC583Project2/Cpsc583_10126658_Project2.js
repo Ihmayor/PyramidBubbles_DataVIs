@@ -30,9 +30,67 @@ function getRandomInPolygon(polygonPoints) {
         point = [numX, numY]
         loop++;
     }
-
     return point;
 }
+
+
+function findPolygon(name) {
+    return viz.clusters.filter(function (cluster) {
+        return cluster.name === name;
+    })[0];
+}
+
+function findGroupPolygon(desc1Name)
+{
+    var foundPolygon;
+    for(var i = 0 ;i <foodPyramidMapping.length;i++)
+    {
+        if (foodPyramidMapping[i].list.indexOf(desc1Name) > -1) {
+            foundPolygon = findPolygon(foodPyramidMapping[i].name);
+        }
+    }
+    return foundPolygon;
+}
+
+var foodPyramidMapping =
+[
+    {
+        "name": "FatsOilsSugarAlcohol", "list": ["Fats",
+                               "Cakes, buns and pastries",
+                               "Biscuits and crispbreads",
+                               "Other food and drink",
+                               "Beverages",
+                               "Sugar and preserves"]
+    },
+    {
+        "name": "MeatPoultry", "list": ["Carcase meat",
+                               "Non-carcase meat and meat products"
+        ]
+    },
+
+    {
+        "name": "MilkEggsFish", "list": [
+                                   "Fish",
+                                   "Milk and milk products excluding cheese",
+                                   "Eggs",
+                                   "Cheese"
+        ]
+    },
+    {
+        "name": "VegetablesFruit",
+        "list": ["Fresh and processed vegetables, excluding potatoes",
+                 "Fresh and processed potatoes",
+                 "Fresh and processed fruit"
+        ]
+    },
+    {
+        "name": "Grain",
+        "list": ["Bread",
+                "Other cereals and cereal products",
+                "Flour"]
+    }
+]
+
 
 // from https://github.com/substack/point-in-polygon
 pointInPolygon = function (point, vs) {
@@ -85,10 +143,10 @@ function findChild(name, parent) {
 function createItemObject(d) {
     return {
         "name": d.desc2.trim(),
-        "fullName": d.desc2+ d.desc3 + d.desc4,
+        "fullName": d.desc2 + d.desc3 + d.desc4,
         "children": [],
         "desc2": d.desc2 != null && d.desc2 != "" ? d.desc2.trim() : "",
-        "desc3": d.desc3 != null && d.desc3 != ""? d.desc3.trim():"",
+        "desc3": d.desc3 != null && d.desc3 != "" ? d.desc3.trim() : "",
         "desc4": d.desc4 != null && d.desc4 != "" ? d.desc4.trim() : "",
         "code": d.code,
         "1974": d.year1974,
@@ -145,7 +203,7 @@ function createNestedChild(d) {
         //console.log("Desc3 " + d.desc3);
         deep3 = createDeepChild(d.desc3, d);
         if (d.desc4 != '' && d.desc4 != null) {
-          //  console.log("Desc4 " + d.desc4);
+            //  console.log("Desc4 " + d.desc4);
             deep4 = createDeepChild(d.desc4, d);
             deep3.children.push(deep4);
         }
@@ -273,15 +331,15 @@ d3.csv("FoodTrendData.csv",
                    var item = createItemObject(d);
                    var nested = createNestedChild(d);
                    item.children.push(nested);
-                   var newArray = { "name": d.desc1, "children": [item], "size": d.year1993}
+                   var newArray = { "name": d.desc1, "children": [item], "size": d.year1993 }
                    treeJson.root.children.push(newArray);
                }
-               //If it does then add to the branches in sub tree
+                   //If it does then add to the branches in sub tree
                else {
-    //               console.log("found array")
-     //              console.log(foundArray);
+                   //               console.log("found array")
+                   //              console.log(foundArray);
                    var item = createItemObject(d);
-                    //Depth 
+                   //Depth 
                    var desc2Child = null;
                    //Second Depth 
                    var desc3Child = null;
@@ -306,29 +364,28 @@ d3.csv("FoodTrendData.csv",
                        var nested = createNestedChild(d);
                        item.children.push(nested);
                        foundArray.children.push(item);
-         //              console.log("Push new Desc2 child");
-         //              console.log(item);
+                       //              console.log("Push new Desc2 child");
+                       //              console.log(item);
                    }
                    else {
                        if (desc3Child != null) {
                            if (d.desc4 != '' && d.desc4 != null) {
                                desc4Child = createDeepChild(d.desc4, d);
                                desc3Child.children.push(desc4Child);
-           //                    console.log("Push new Desc4 child");
-           //                    console.log(desc4Child);
+                               //                    console.log("Push new Desc4 child");
+                               //                    console.log(desc4Child);
                            }
                        }
                        else {
-                           if (d.desc3 != '' && d.desc3 != null)
-                           {
+                           if (d.desc3 != '' && d.desc3 != null) {
                                desc3Child = createDeepChild(d.desc3, d);
                                if (d.desc4 != '' && d.desc4 != null) {
                                    desc4Child = createDeepChild(d.desc4, d);
                                    desc3Child.children.push(desc4Child);
                                }
                                desc2Child.children.push(desc3Child);
-             //                  console.log("Push new Desc3 child");
-             //                  console.log(desc3Child);
+                               //                  console.log("Push new Desc3 child");
+                               //                  console.log(desc3Child);
                            }
                        }
                    }
@@ -356,7 +413,7 @@ d3.csv("FoodTrendData.csv",
             //Main Visualization stsructure
             var viz = {
                 size: { width: width, height: height },
-                clusters: [{ name: 'MilkEggsFish' }, {name: 'VegetablesFruit' }, { name: 'Grain' }, { name: 'FatsOilsSugarAlcohol' }, { name: 'MeatPoultry' }],
+                clusters: [{ name: 'MilkEggsFish' }, { name: 'VegetablesFruit' }, { name: 'Grain' }, { name: 'FatsOilsSugarAlcohol' }, { name: 'MeatPoultry' }],
                 colors: d3.scale,
                 polygons_params: {
                     ta: 1 / 9, // the height of the top middle segment (in proportion of height)
@@ -480,14 +537,15 @@ d3.csv("FoodTrendData.csv",
             .attr("cy", function (d) {
 
             })
-            .attr("class", function (d) {return d.parent ? d.children ? "node"+d.data.name : "node node--leaf" : "node node--root"; })
+            .attr("class", function (d) { return d.parent ? d.children ? "node" + d.data.name : "node node--leaf" : "node node--root"; })
             .style("fill", function (d) { return d.children ? color(d.depth) : null; })
-            .on("click", function (d) { if (focus !== d) zoom(d,circle, g.selectAll("circle,text")), d3.event.stopPropagation(); });
-            
+            .on("click", function (d) { if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation(); });
+
             nodes.forEach(function (node) {
                 if (node.parent.data.name == "root") {
                     console.log(node.data.name);
-                    var transformPoint = find
+                    var polygonCluster = findGroupPolygon(node.data.name);
+
                     node.x += 100;
                     node.children.forEach(function (childNode) {
                         childNode.x += 100;
