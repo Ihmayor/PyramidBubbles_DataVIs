@@ -70,7 +70,8 @@ function findChild(name, parent) {
     name = name.trim();
     var returnArray = null;
     parent.children.forEach(function (array) {
-        if (array.name.trim() == name) {
+        var arrayName = array.name.trim();
+        if (arrayName == name) {
             returnArray = array;
         }
     })
@@ -80,10 +81,10 @@ function findChild(name, parent) {
 
 function createItemObject(d) {
     return {
-        "name": d.desc2,
+        "name": d.desc2.trim(),
         "fullName": d.desc2+ d.desc3 + d.desc4,
         "children": [],
-        "desc2": d.desc2,
+        "desc2": d.desc2 != null && d.desc2 != "" ? d.desc2.trim() : "",
         "desc3": d.desc3 != null && d.desc3 != ""? d.desc3.trim():"",
         "desc4": d.desc4 != null && d.desc4 != "" ? d.desc4.trim() : "",
         "code": d.code,
@@ -288,44 +289,13 @@ d3.csv("FoodTrendData.csv",
                    foundArray.children.forEach(function (child) {
                        child.desc2 = child.desc2.trim();
                        if (desc2Child == null)
-                           desc2Child = findChild(d.desc2.trim(), child);
+                           desc2Child = findChild(d.desc2, child);
+
                        if (desc2Child != null &&
                            (desc2Child.children.length > 0) &&
                            (d.desc3 != '' && d.desc3 != null)) {
                            if (desc3Child == null)
-                               desc3Child = findChild(d.desc3, child);
-                       }
-                       else {
-                           if (d.desc2 == "Liver")
-                           {
-                               console.log("Check: " + child.desc2 + ", " + d.desc2);
-                               console.log("Result Though: " + child.desc2 === d.desc2);
-                           }
-                           if (child.desc2 != d.desc2 && child.desc2.length == d.desc2.length) {
-                               if (d.desc2 == "Liver") {
-                                   console.log("WHAAAAAT1");
-                                   console.log("Child");
-                                   console.log(child.desc2);
-                                   console.log("Desc Row d");
-                                   console.log(d.desc2);
-                                   console.log(child.desc2.indexOf(d.desc2));
-                               }
-                           }
-                           else {
-                               if (d.desc2 == "Liver") {
-                                   console.log("WHAAAAAT");
-                                   console.log("Child");
-                                   console.log(child.desc2);
-                                   console.log("Desc Row d");
-                                   console.log(d.desc2);
-                                   console.log(child.desc2.indexOf(d.desc2));
-                                   console.log("length diff: " + (child.desc2.length - d.desc2.length))
-                                   console.log("Is equal length: ")
-                                   console.log(child.desc2.length == d.desc2.length);
-                                   console.log("Is equal trimmed()")
-                                   console.log(child.desc2.trim() == d.desc2.trim())
-                               }
-                           }
+                               desc3Child = findChild(d.desc3.trim(), child);
                        }
                    });
 
@@ -367,10 +337,11 @@ d3.csv("FoodTrendData.csv",
        },
 
         function (data) {
-
+            console.log(treeJson.root);
             var svg = d3.select("svg"),
             margin = 20,
             diameter = +svg.attr("width"),
+            g2 = svg.append("g"),
             g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
 
             //Polygon Code
@@ -394,7 +365,6 @@ d3.csv("FoodTrendData.csv",
             var polygons = initPolygons();
             var debugStop = 0;
             viz.clusters = viz.clusters.map(function (c) {
-
                 //Determines Bubble Size
                 c.data = d3.range(50).map(function () {
                     return { size: 0.2 };
@@ -413,7 +383,7 @@ d3.csv("FoodTrendData.csv",
                 }
 
                 //Place Pyramid Shape. Give fill and color.
-                var polygon = g.append('polygon')
+                var polygon = g2.append('polygon')
                   .attr('points', cluster.polygon)
                   .attr('stroke', '#000')
                   .attr('fill', '#bbb')
@@ -498,7 +468,7 @@ d3.csv("FoodTrendData.csv",
             {
 
             })
-            var child = treeJson.root.children[0];
+            var child = treeJson.root;
             var root = d3.hierarchy(child)
                     .sum(function (d) { return d.size; })
                     .sort(function (a, b) { return b.value - a.value; });
@@ -552,7 +522,7 @@ d3.csv("FoodTrendData.csv",
 
 
             function zoomTo(v, node, circle) {
-                var k = diameter / v[2]; view = v;
+                var k = 0.3; view = v;
                 node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
                 circle.attr("r", function (d) { return d.r * k; });
             }
