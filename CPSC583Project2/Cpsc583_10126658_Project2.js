@@ -17,10 +17,9 @@ function getRandomInPolygon(polygonPoints) {
     var maxY = polygonPoints[polygonPoints.length - 1][1];
     var numY = Math.random() * (maxY - minY) + minY;
 
-    var point = [numX,numY]
+    var point = [numX, numY]
     var loop = 0;
-    while (!pointInPolygon(point, polygonPoints))
-    {
+    while (!pointInPolygon(point, polygonPoints)) {
         if (loop > 100)
             break;
         numX = Math.random() * (maxX - minX) + minX;
@@ -67,13 +66,11 @@ function findArray(desc1Name) {
     return returnArray;
 }
 
-function findChild(name, parent)
-{
+function findChild(name, parent) {
+    name = name.trim();
     var returnArray = null;
-    parent.children.forEach(function(array)
-    {
-        if (array.name = name)
-        {
+    parent.children.forEach(function (array) {
+        if (array.name = name) {
             returnArray = array;
         }
     })
@@ -83,8 +80,9 @@ function findChild(name, parent)
 
 function createItemObject(d) {
     return {
-        "name": d.desc2 + d.desc3 + d.desc4,
-        "children":[],
+        "name": d.desc2,
+        "fullName": d.desc2+ d.desc3 + d.desc4,
+        "children": [],
         "desc2": d.desc2,
         "desc3": d.desc3,
         "desc4": d.desc4,
@@ -135,9 +133,79 @@ function createItemObject(d) {
 
 }
 
+function createNestedChild(d) {
+    var deep = createDeepChild(d.desc2, d);
+    var deep3 = null;
+    var deep4 = null;
+    if (d.desc3 != "" && d.desc3 != null) {
+        //console.log("Desc3 " + d.desc3);
+        deep3 = createDeepChild(d.desc3, d);
+        if (d.desc4 != '' && d.desc4 != null) {
+          //  console.log("Desc4 " + d.desc4);
+            deep4 = createDeepChild(d.desc4, d);
+            deep3.children.push(deep4);
+        }
+        deep.children.push(deep3);
+    }
+    return deep;
+}
+
+function createDeepChild(name, d) {
+    return {
+        "name": name,
+        "children": [],
+        "desc2": d.desc2,
+        "desc3": d.desc3,
+        "desc4": d.desc4,
+        "code": d.code,
+        "1974": d.year1974,
+        "1975": d.year1975,
+        "1976": d.year1976,
+        "1977": d.year1977,
+        "1978": d.year1978,
+        "1979": d.year1979,
+        "1980": d.year1980,
+        "1981": d.year1981,
+        "1982": d.year1982,
+        "1983": d.year1983,
+        "1984": d.year1984,
+        "1985": d.year1985,
+        "1986": d.year1986,
+        "1987": d.year1987,
+        "1988": d.year1988,
+        "1989": d.year1989,
+        "1990": d.year1990,
+        "1991": d.year1991,
+        "1992": d.year1992,
+        "1993": d.year1993,
+        "1994": d.year1994,
+        "1995": d.year1995,
+        "1996": d.year1996,
+        "1997": d.year1997,
+        "1998": d.year1998,
+        "1999": d.year1999,
+        "2000": d.year2000,
+        "2001": d.year2001,
+        "2002": d.year2002,
+        "2003": d.year2003,
+        "2004": d.year2004,
+        "2005": d.year2005,
+        "2006": d.year2006,
+        "2007": d.year2007,
+        "2008": d.year2008,
+        "2009": d.year2009,
+        "2010": d.year2010,
+        "2011": d.year2011,
+        "2012": d.year2012,
+        "2013": d.year2013,
+        "2014": d.year2014,
+        "size": d.year1993
+    }
+}
 //Load Up Data Points
 d3.csv("FoodTrendData.csv",
        function (d) {
+           //Format Dates
            d.year1974 = +d.year1974;
            d.year1975 = +d.year1975;
            d.year1976 = +d.year1976;
@@ -179,6 +247,7 @@ d3.csv("FoodTrendData.csv",
            d.year2012 = +d.year2012;
            d.year2013 = +d.year2013;
            d.year2014 = +d.year2014;
+
            var foundArray;
 
            if (typeof treeJson.root === 'undefined' || treeJson.root === null) {
@@ -189,21 +258,110 @@ d3.csv("FoodTrendData.csv",
                    }]
                };
                treeJson.root = root;
+               var nested = createNestedChild(d);
+               item.children.push(nested);
            }
            else {
                //Get Desc 1 Array 
                foundArray = findArray(d.desc1);
+               //If it does not exist creat the entire sub tree
                if (foundArray == null) {
                    var item = createItemObject(d);
-                   var newArray = { "name": d.desc1, "children": [item], "size": d.year1993 }
+                   var nested = createNestedChild(d);
+                   item.children.push(nested);
+                   var newArray = { "name": d.desc1, "children": [item], "size": d.year1993}
                    treeJson.root.children.push(newArray);
                }
+               //If it does then add to the branches in sub tree
                else {
+    //               console.log("found array")
+     //              console.log(foundArray);
                    var item = createItemObject(d);
-                   foundArray.children.push(item);
+                    //Depth 
+                   var desc2Child = null;
+                   //Second Depth 
+                   var desc3Child = null;
+                   //Indiv Row
+                   var desc4Child = null;
+
+                   //Set References
+                   foundArray.children.forEach(function (child) {
+                       if (desc2Child == null)
+                           desc2Child = findChild(d.desc2, child);
+                       if (desc2Child != null &&
+                           (desc2Child.children.length > 0) &&
+                           (d.desc3 != '' && d.desc3 != null)) {
+                           if (desc3Child == null)
+                               desc3Child = findChild(d.desc3, child);
+                       }
+                       else {
+                           if (d.desc2 == "Liver")
+                           {
+                               console.log("Check: " + child.desc2 + ", " + d.desc2);
+                               console.log("Result Though: " + child.desc2 === d.desc2);
+                           }
+                           if (child.desc2 != d.desc2 && child.desc2.length == d.desc2.length) {
+                               if (d.desc2 == "Liver") {
+                                   console.log("WHAAAAAT");
+                                   console.log("Child");
+                                   console.log(child.desc2);
+                                   console.log("Desc Row d");
+                                   console.log(d.desc2);
+                                   console.log(child.desc2.indexOf(d.desc2));
+                               }
+                           }
+                           else {
+                               if (d.desc2 == "Liver") {
+                                   console.log("WHAAAAAT");
+                                   console.log("Child");
+                                   console.log(child.desc2);
+                                   console.log("Desc Row d");
+                                   console.log(d.desc2);
+                                   console.log(child.desc2.indexOf(d.desc2));
+                                   console.log("length diff: " + (child.desc2.length - d.desc2.length))
+                                   console.log("Is equal length: ")
+                                   console.log(child.desc2.length == d.desc2.length);
+                                   console.log("Is equal trimmed()")
+                                   console.log(child.desc2.trim() == d.desc2.trim())
+                               }
+                           }
+                       }
+                   });
+
+                   if (desc2Child == null) {
+                       var nested = createNestedChild(d);
+                       item.children.push(nested);
+                       foundArray.children.push(item);
+         //              console.log("Push new Desc2 child");
+         //              console.log(item);
+                   }
+                   else {
+                       if (desc3Child != null) {
+                           if (d.desc4 != '' && d.desc4 != null) {
+                               desc4Child = createDeepChild(d.desc4, d);
+                               desc3Child.children.push(desc4Child);
+           //                    console.log("Push new Desc4 child");
+           //                    console.log(desc4Child);
+                           }
+                       }
+                       else {
+                           if (d.desc3 != '' && d.desc3 != null)
+                           {
+                               desc3Child = createDeepChild(d.desc3, d);
+                               if (d.desc4 != '' && d.desc4 != null) {
+                                   desc4Child = createDeepChild(d.desc4, d);
+                                   desc3Child.children.push(desc4Child);
+                               }
+                               desc2Child.children.push(desc3Child);
+             //                  console.log("Push new Desc3 child");
+             //                  console.log(desc3Child);
+                           }
+                       }
+                   }
                    foundArray.size = foundArray.size + d.year1993;
                }
            }
+
            return d;
        },
 
@@ -222,50 +380,92 @@ d3.csv("FoodTrendData.csv",
                 .size([diameter - margin, diameter - margin])
                 .padding(2);
 
-            var root = d3.hierarchy(treeJson.root)
-                  .sum(function (d) { return d.size; })
-                  .sort(function (a, b) { return b.value - a.value; });
+            var childrenRef = [];
+
+
+
+            var child = treeJson.root.children[0];
+            console.log(child);
+            var root = d3.hierarchy(child)
+                    .sum(function (d) { return d.size; })
+                    .sort(function (a, b) { return b.value - a.value; });
 
             var focus = root,
                 nodes = pack(root).descendants(),
                 view;
 
+
             var circle = g.selectAll("circle")
-              .data(nodes)
-              .enter().append("circle")
-                .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-                .style("fill", function (d) { return d.children ? color(d.depth) : null; })
-                .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
+          .data(nodes)
+          .enter().append("circle")
+            .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+            .style("fill", function (d) { return d.children ? color(d.depth) : null; })
+            .on("click", function (d) { if (focus !== d) zoom(d,circle, g.selectAll("circle,text")), d3.event.stopPropagation(); });
+
+            childrenRef.push(circle);
 
             var text = g.selectAll("text")
-              .data(nodes)
-              .enter().append("text")
-                .attr("class", "label")
-                .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
-                .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
-                .text(function (d) { return d.data.name; });
+                        .data(nodes)
+                        .enter().append("text")
+                        .attr("class", "label")
+                        .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
+                        .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
+                        .text(function (d) { return d.data.name; });
 
             var node = g.selectAll("circle,text");
 
-            nodes.shift();
-
-            console.log("node: ");
-            console.log(nodes);
-
             svg
-                .style("background", color(-1))
-                .on("click", function () { zoom(root); });
+            .style("background", color(-1))
+            .on("click", function () { zoom(root, circle, node); });
 
-            zoomTo([root.x, root.y, root.r * 2 + margin]);
+            zoomTo([root.x, root.y, root.r * 2 + margin], node, circle);
 
-            function zoom(d) {
+
+
+
+            //var root = d3.hierarchy(treeJson.root)
+            //      .sum(function (d) { return d.size; })
+            //      .sort(function (a, b) { return b.value - a.value; });
+
+            //var focus = root,
+            //    nodes = pack(root).descendants(),
+            //    view;
+
+            //var circle = g.selectAll("circle")
+            //  .data(nodes)
+            //  .enter().append("circle")
+            //    .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+            //    .style("fill", function (d) { return d.children ? color(d.depth) : null; })
+            //    .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
+
+            //var text = g.selectAll("text")
+            //  .data(nodes)
+            //  .enter().append("text")
+            //    .attr("class", "label")
+            //    .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
+            //    .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
+            //    .text(function (d) { return d.data.name; });
+
+
+            //nodes.shift();
+
+            //console.log("node: ");
+            //console.log(nodes);
+
+            //svg
+            //    .style("background", color(-1))
+            //    .on("click", function () { zoom(root); });
+
+            //zoomTo([root.x, root.y, root.r * 2 + margin]);
+
+            function zoom(d, circle, node) {
                 var focus0 = focus; focus = d;
 
                 var transition = d3.transition()
                     .duration(d3.event.altKey ? 7500 : 750)
                     .tween("zoom", function (d) {
                         var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
-                        return function (t) { zoomTo(i(t)); };
+                        return function (t) { zoomTo(i(t), node, circle); };
                     });
 
                 transition.selectAll("text")
@@ -275,7 +475,8 @@ d3.csv("FoodTrendData.csv",
                     .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
             }
 
-            function zoomTo(v) {
+
+            function zoomTo(v, node, circle) {
                 var k = diameter / v[2]; view = v;
                 node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
                 circle.attr("r", function (d) { return d.r * k; });
@@ -284,16 +485,16 @@ d3.csv("FoodTrendData.csv",
 
 
             //Polygon Collisiion Code
-            
+
             //Initial Values
             var width = +svg.attr("width"),
-                height =+svg.attr("height"),
+                height = +svg.attr("height"),
                 radius = 3;
 
-            
+
             //Main Visualization stsructure
             var viz = {
-                size: { width: width, height:height },
+                size: { width: width, height: height },
                 clusters: [{ name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }, { name: 'e' }],
                 colors: d3.scale,
                 polygons_params: {
@@ -327,7 +528,7 @@ d3.csv("FoodTrendData.csv",
 
             //initializes the pyramid
             function initLayout(cluster) {
-                
+
                 var radius = function (d) {
                     return d.size + 2.2;
                 }
@@ -344,20 +545,20 @@ d3.csv("FoodTrendData.csv",
                 var center = d3.polygonCentroid(cluster.polygon);
 
 
-/*
-                var g  = svg.append('g').attr('class', 'bubbles ' + cluster.name);
-                
-                cluster.data.forEach(function (d,i) {
-                    var newPoint = getRandomInPolygon(cluster.polygon);
-                    g.append('circle')
-                        .attr('class', 'bubble')
-                        .attr('r', 2)
-                        .attr('stroke-width', 0.001)
-                        .attr('fill', '#000')
-                        .attr('cx', function () { return newPoint[0];})
-                        .attr('cy', function () { return newPoint[1];})
-                })
-  */
+                /*
+                                var g  = svg.append('g').attr('class', 'bubbles ' + cluster.name);
+                                
+                                cluster.data.forEach(function (d,i) {
+                                    var newPoint = getRandomInPolygon(cluster.polygon);
+                                    g.append('circle')
+                                        .attr('class', 'bubble')
+                                        .attr('r', 2)
+                                        .attr('stroke-width', 0.001)
+                                        .attr('fill', '#000')
+                                        .attr('cx', function () { return newPoint[0];})
+                                        .attr('cy', function () { return newPoint[1];})
+                                })
+                  */
                 //console.log("polygon name: " + cluster.name);
                 //var nodes = d3.range(1000).map(function () {
                 //    var point = getRandomInPolygon(cluster.polygon);
@@ -472,17 +673,17 @@ d3.csv("FoodTrendData.csv",
             function forceCollidePolygon(polygon, radius) {
                 console.log("interesting...");
                 var nodes, n, iterations = 1,
-                    max=Math.max,
-                    min=Math.min;
-                var absub = function(a,b){ return max(a,b)-min(a,b); };
-                var center= d3.polygonCentroid(polygon);
-      
+                    max = Math.max,
+                    min = Math.min;
+                var absub = function (a, b) { return max(a, b) - min(a, b); };
+                var center = d3.polygonCentroid(polygon);
+
                 // took from d3-force/src/collide.js
                 if (typeof radius !== "function") radius = constant(radius == null ? 1 : +radius);
-      
+
                 // took from d3-force/src/constant.js
-                function constant(x){
-                    return function() {
+                function constant(x) {
+                    return function () {
                         return x;
                     };
                 }
@@ -492,47 +693,47 @@ d3.csv("FoodTrendData.csv",
                 }
 
                 // adapted from http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-                function intersection(p0, p1, p2, p3){
-                    var s1 = [ p1[0] - p0[0], p1[1] - p0[1]];
-                    var s2 = [ p3[0] - p2[0], p3[1] - p2[1]];
+                function intersection(p0, p1, p2, p3) {
+                    var s1 = [p1[0] - p0[0], p1[1] - p0[1]];
+                    var s2 = [p3[0] - p2[0], p3[1] - p2[1]];
                     // intersection compute
                     var s, t;
                     s = -s1[1] * (p0[0] - p2[0]) + s1[0] * (p0[1] - p3[1]);
-                    t =  s2[0] * (p0[1] - p2[1]) - s2[1] * (p0[0] - p3[0]);
+                    t = s2[0] * (p0[1] - p2[1]) - s2[1] * (p0[0] - p3[0]);
                     s = s / (-s2[0] * s1[1] + s1[0] * s2[1]);
                     t = t / (-s2[0] * s1[1] + s1[0] * s2[1]);
 
                     if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
                         // intersection coordinates
                         return {
-                            x:p0[0] + (t * s1[0]),
-                            y:p0[1] + (t * s1[1])
+                            x: p0[0] + (t * s1[0]),
+                            y: p0[1] + (t * s1[1])
                         };
                     }
                     return false;
                 }
 
-                function force(){
-                    for(var l = 0; l < iterations; l++){
-                        for(var k = 0; k < nodes.length; k++){
+                function force() {
+                    for (var l = 0; l < iterations; l++) {
+                        for (var k = 0; k < nodes.length; k++) {
                             var node = nodes[k];
-                            var r  = radius(node);
-                            var px = (node.x >= center[0]?1:-1);
-                            var py = (node.y >= center[1]?1:-1);
-            
-                            var t = [ node.x + px*r, node.y + py*r];
-            
+                            var r = radius(node);
+                            var px = (node.x >= center[0] ? 1 : -1);
+                            var py = (node.y >= center[1] ? 1 : -1);
+
+                            var t = [node.x + px * r, node.y + py * r];
+
                             // we loop over polygon's edges to check collisions
-                            for(var j = 0; j < polygon.length; j++){
-                                var n = (j+1) < polygon.length ? (j+1):0;
+                            for (var j = 0; j < polygon.length; j++) {
+                                var n = (j + 1) < polygon.length ? (j + 1) : 0;
                                 var p1 = polygon[j];
                                 var p2 = polygon[n];
                                 var i = intersection(p1, p2, center, t);
-                                if(i){
+                                if (i) {
                                     // give a small velocity at the opposite of the collision point
                                     // this can be tweaked
-                                    node.vx = -px/Math.sqrt(absub(i.x, t[0]) + jiggle());
-                                    node.vy = -py/Math.sqrt(absub(i.y, t[1]) + jiggle());
+                                    node.vx = -px / Math.sqrt(absub(i.x, t[0]) + jiggle());
+                                    node.vy = -py / Math.sqrt(absub(i.y, t[1]) + jiggle());
                                     break;
                                 }
                             }
@@ -541,15 +742,15 @@ d3.csv("FoodTrendData.csv",
                     return;
                 }
 
-                force.iterations = function(_) {
+                force.iterations = function (_) {
                     return arguments.length ? (iterations = +_, force) : iterations;
                 };
-      
-                force.initialize = function(_){
+
+                force.initialize = function (_) {
                     n = (nodes = _).length;
                 };
-      
-                force.radius = function(_){
+
+                force.radius = function (_) {
                     return arguments.length ? (radius = typeof _ === "function" ? _ : constant(+_), force) : radius;
                 };
                 return force;
