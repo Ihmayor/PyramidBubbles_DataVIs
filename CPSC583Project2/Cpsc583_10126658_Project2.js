@@ -11,6 +11,7 @@ var years = ["1974", "1975",
 
 
 function getRandomInPolygon(polygonPoints) {
+    console.log(polygonPoints);
     var minX = polygonPoints[polygonPoints.length - 2][0];
     var maxX = polygonPoints[polygonPoints.length - 1][0];
     var numX = Math.random() * (maxX - minX) + minX;
@@ -34,19 +35,19 @@ function getRandomInPolygon(polygonPoints) {
 }
 
 
-function findPolygon(name) {
-    return viz.clusters.filter(function (cluster) {
+function findPolygon(name, clusters) {
+    return clusters.filter(function (cluster) {
         return cluster.name === name;
-    })[0];
+    })[0].polygon;
 }
 
-function findGroupPolygon(desc1Name)
+function findGroupPolygon(desc1Name, clusters)
 {
     var foundPolygon;
     for(var i = 0 ;i <foodPyramidMapping.length;i++)
     {
         if (foodPyramidMapping[i].list.indexOf(desc1Name) > -1) {
-            foundPolygon = findPolygon(foodPyramidMapping[i].name);
+            foundPolygon = findPolygon(foodPyramidMapping[i].name,clusters);
         }
     }
     return foundPolygon;
@@ -145,6 +146,7 @@ function createItemObject(d) {
         "name": d.desc2.trim(),
         "fullName": d.desc2 + d.desc3 + d.desc4,
         "children": [],
+        "desc1": d.desc1,
         "desc2": d.desc2 != null && d.desc2 != "" ? d.desc2.trim() : "",
         "desc3": d.desc3 != null && d.desc3 != "" ? d.desc3.trim() : "",
         "desc4": d.desc4 != null && d.desc4 != "" ? d.desc4.trim() : "",
@@ -216,6 +218,7 @@ function createDeepChild(name, d) {
     return {
         "name": name.trim(),
         "children": [],
+        "desc1":d.desc1,
         "desc2": d.desc2,
         "desc3": d.desc3,
         "desc4": d.desc4,
@@ -543,20 +546,27 @@ d3.csv("FoodTrendData.csv",
 
             nodes.forEach(function (node) {
                 if (node.parent.data.name == "root") {
-                    console.log(node.data.name);
-                    var polygonCluster = findGroupPolygon(node.data.name);
-
-                    node.x += 100;
+                    var polygonCluster = findGroupPolygon(node.data.name,viz.clusters);
+                    var point = getRandomInPolygon(polygonCluster);
+                    var offsetX = 350;
+                    var diffX = (point[0] - offsetX) - node.x;
+                    var diffY = point[1] - node.y;
+                    node.x += diffX;
+                    node.y += diffY;
                     node.children.forEach(function (childNode) {
-                        childNode.x += 100;
+                        childNode.x += diffX;
+                        childNode.y += diffY;
                         childNode.children.forEach(function (childNode) {
-                            childNode.x += 100;
+                            childNode.x += diffX;
+                            childNode.y += diffY;
                             if (childNode.children != null) {
                                 childNode.children.forEach(function (childNode) {
-                                    childNode.x += 100;
+                                    childNode.x += diffX;
+                                    childNode.y += diffY;
                                     if (childNode.children != null) {
                                         childNode.children.forEach(function (childNode) {
-                                            childNode.x += 100;
+                                            childNode.x += diffX;
+                                            childNode.y += diffY;
                                         })
                                     }
                                 })
