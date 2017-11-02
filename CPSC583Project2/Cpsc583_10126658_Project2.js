@@ -557,7 +557,19 @@ d3.csv("FoodTrendData.csv",
             })
             .attr("class", function (d) { return d.parent ? d.children ? "node" + d.data.name : "node node--leaf" : "node node--root"; })
             .style("fill", function (d) { return d.children ? color(d.depth) : null; })
-            .on("click", function (d) { if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation(); });
+            .on("click", function (d) {
+                console.log("circle click");
+                //Translate
+                //[newFocus.x - oldFocus.x]
+                //[newFocus.x - oldFocus.x]
+
+                //calc scale => var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
+
+
+
+                if (focus !== d) zoomToBox([focus.x - d.x, focus.y - d.y], 1);
+                if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation();
+            });
 
             nodes.forEach(function (node) {
                 if (node.parent.data.name == "root") {
@@ -608,8 +620,17 @@ d3.csv("FoodTrendData.csv",
 
             svg
             .style("background", color(-1))
-            .on("click", function () { zoom(root, circle, node); });
+            .on("click", function () {
+                console.log("Svg click"); console.log(node); zoom(root, circle, node);
+                zoomToBox([0,0], 1)
 
+            });
+
+            g2.on("click", function () {
+                console.log("g2 click");
+                zoom(root, circle, node);
+                zoomToBox([0, 0], 1);
+            })
             zoomTo([root.x, root.y, root.r * 2 + margin], node, circle);
 
             function zoom(d, circle, node) {
@@ -629,13 +650,30 @@ d3.csv("FoodTrendData.csv",
                     .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
                     .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
 
-                console.log("observations");
-                zoomToBox([focus.x-focus0.x, focus.y-focus0.y], 1)
+                //console.log("observations");
+                if (focus.x == root.x && focus.y == root.y)
+                {
+                  //  console.log("test root");
+                }
+
+                //console.log(focus.x - focus0.x)
+                //console.log(focus.y - focus0.y);
+                //[newFocus.x - oldFocus.x]
+                //[newFocus.x - oldFocus.x]
 
             }
 
             function zoomToBox(translate, scale)
             {
+                console.log(translate)
+                //if (Math.abs(root.x) == Math.abs(translate[0]) && Math.abs(root.y) == Math.abs(translate[1]))
+                 //   console.log("test");
+                //else {
+                //    console.log("Check1 : "+translate[0])
+                //    console.log("Check2: " + root.x);
+                //    console.log("Check3: " + translate[1])
+                //    console.log("Check4: " + root.y);
+                //}
                 g2.transition()
                     .duration(750)
                     .style("stroke-width", 1.5 / scale + "px")
