@@ -129,6 +129,32 @@ var foodPyramidMapping =
     }
 ]
 
+
+
+var placementMapping =
+
+{
+    "Fats": [541.5399059651087, 81.95739998353346],
+    "Non-carcase meat and meat products": [551.417479683941, 198.63270109897886],
+    "Fish": [827.8972579255391, 374.8491067276424],
+    "Milk and milk products excluding cheese": [467.1595732816739, 359.0432414386874],
+    "Eggs": [643.70661659431494, 344.2900202729286],
+    "Cheese": [655.9747695470521, 383.36218425414626],
+    "Fresh and processed vegetables, excluding potatoes": [844.2067410904847, 512.222091255751],
+    "Cakes, buns and pastries": [625.2439458928304, 126.91196561300958],
+    "Biscuits and crispbreads": [565.9400270276133, 32.412238548416646],
+    "Other food and drink": [510.8644355817935, 121.16498779525614],
+    "Beverages": [582.7287796150976, 99.25140512832795],
+    "Sugar and preserves": [600.3752913182295, 68.9114040154967],
+    "Carcase meat": [640.9138463520368, 225.6355006646258],
+    "Fresh and processed potatoes": [358.4625170531575, 521.3699861211574],
+    "Fresh and processed fruit": [621.8666417807942, 522.4167693499593],
+    "Bread": [192.68827567927914, 652.7952308237622],
+    "Other cereals and cereal products": [676.825537052069, 676.6877163523523],
+    "Flour": [924.6119167881425, 658.1777819589929]
+}
+
+
 function findArray(desc1Name) {
     var returnArray = null;
     if (treeJson == {} || treeJson.root == null) {
@@ -282,6 +308,38 @@ function createDeepChild(name, d) {
         "size": d.year1993
     }
 }
+function shiftNodeSubTree(node, polygonCluster, diffX, diffY) {
+    node.x += diffX;
+    node.y += diffY;
+    node.polygon = polygonCluster;
+    node.children.forEach(function (childNode) {
+        childNode.x += diffX;
+        childNode.y += diffY;
+        childNode.polygon = polygonCluster;
+        childNode.children.forEach(function (childNode) {
+            childNode.x += diffX;
+            childNode.y += diffY;
+            childNode.polygon = polygonCluster;
+            if (childNode.children != null) {
+                childNode.children.forEach(function (childNode) {
+                    childNode.x += diffX;
+                    childNode.y += diffY;
+                    childNode.polygon = polygonCluster;
+                    if (childNode.children != null) {
+                        childNode.children.forEach(function (childNode) {
+                            childNode.x += diffX;
+                            childNode.y += diffY;
+                            childNode.polygon = polygonCluster;
+                        })
+                    }
+                })
+            }
+        })
+    })
+
+}
+var totalPolygons = [];
+
 //Load Up Data Points
 d3.csv("FoodTrendData.csv",
        function (d) {
@@ -417,7 +475,7 @@ d3.csv("FoodTrendData.csv",
         function (data) {
             var svg = d3.select("svg"),
             margin = 20,
-            diameter = 500,
+            diameter = 480,
             g2 = svg.append("g"),
             g = svg.append("g").attr("transform", "translate(600," + diameter / 2 + ")");
 
@@ -430,6 +488,7 @@ d3.csv("FoodTrendData.csv",
 
             //Main Visualization stsructure
             var viz = {
+                originalSize:{ width: width, height: height },
                 size: { width: width, height: height },
                 clusters: [{ name: 'MilkEggsFish' }, { name: 'VegetablesFruit' }, { name: 'Grain' }, { name: 'FatsOilsSugarAlcohol' }, { name: 'MeatPoultry' }],
                 colors: d3.scale,
@@ -441,35 +500,41 @@ d3.csv("FoodTrendData.csv",
 
             var polygons = initPolygons();
             var debugStop = 0;
-            viz.clusters = viz.clusters.map(function (c) {
+            var accent = d3.scaleOrdinal(d3.schemeSet3);
+            viz.clusters = viz.clusters.map(function (c, i) {
                 //Determines Bubble Size
                 c.data = d3.range(50).map(function () {
                     return { size: 0.2 };
                 });
                 c.polygon = polygons[c.name];
-                c.layout = initLayout(c);
+                c.layout = initLayout(c, i,accent);
                 return c;
             });
 
 
+
+
             //initializes the pyramid
-            function initLayout(cluster) {
+            function initLayout(cluster,i,accent) {
 
                 var radius = function (d) {
                     return d.size + 2.2;
                 }
-
+                
                 //Place Pyramid Shape. Give fill and color.
                 var polygon = g2.append('polygon')
                   .attr('points', cluster.polygon)
                   .attr('stroke', '#000')
-                  .attr('fill', '#bbb')
+                  .attr('fill', function () { console.log(i);return accent(i); })
                   .attr('stroke-width', 2)
-                  .style('opacity', 0.3);
+                  .style('opacity', 0.9);
 
                 //Find Center
                 var center = d3.polygonCentroid(cluster.polygon);
+                polygon.center = center;
+                totalPolygons.push(polygon);
             }
+
 
 
             //Initializes Polygons themselves. This is the shapes definitions.
@@ -549,64 +614,89 @@ d3.csv("FoodTrendData.csv",
                 view;
             nodes.shift();
 
+            //Create tooltip div
+            var div = d3.select("body").append("div")
+                     .attr("class", "tooltip")
+                     .style("opacity", 0);
+
             var circle = g.selectAll("circle")
           .data(nodes)
           .enter().append("circle")
-            .attr("cy", function (d) {
+                      .on("mouseover", function (d) {
+                          //Highlight the bar hovered over at this moment
+                          d3.select(this).style("stroke-width", 5).style("stroke", "red")
+                          //Show the tool tip with associated data
+                          div.transition()
+                         .duration(200)
+                         .style("opacity", .6);
+                          div.html("Code: " + d.code + "<br/>Amount: " + d.size + "<br/>Item Name: <br/>" + d.name)
+                              .style("left", (d3.event.pageX) + "px")
+                              .style("top", (d3.event.pageY - 28) + "px")
+                              .style('font-size', '10px')
+                      })
+                    .on("mousemove", function (d) {
+                        div.transition()
+                       .duration(200)
+                       .style("opacity", .6);
+                        div.html("Code: " + d.code + "<br/>Amount: " + d.size + "<br/>Item Name: <br/>" + d.name)
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY - 28) + "px")
+                            .style('font-size', '10px')
+                    })
+                    .on("mouseleave", function () {
+                        //Remove highlight when no longer hovered over
+                        d3.select(this).style("stroke-width", 0).style("stroke", "red")
 
-            })
+                        //Fade away the tooltip
+                        div.transition()
+                                    .style('opacity', 0)
+                                    .duration(500)
+
+                    })
+
             .attr("class", function (d) { return d.parent ? d.children ? "node" + d.data.name : "node node--leaf" : "node node--root"; })
             .style("fill", function (d) { return d.children ? color(d.depth) : null; })
+                .style("opacity", 0.2)
             .on("click", function (d) {
-                console.log("circle click");
                 //Translate
                 //[newFocus.x - oldFocus.x]
                 //[newFocus.x - oldFocus.x]
 
-                //calc scale => var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
+                //calc scale => var i = d3.interpolateZoom(view, [d.x, d.y, (d.r * 2 + margin)/d.r]);
 
+                scale = d.r;
+                var offsetX = -66200;
+                var offsetY = -42200;
+//                scale = diameter / (d.r * 2 + margin)
+                var translateX = (focus.x - d.x);
+                var translateY = (focus.y - d.y);
 
+//                translateX += offsetX;
+//                translateY += offsetY;
 
-                if (focus !== d) zoomToBox([focus.x - d.x, focus.y - d.y], 1);
+                console.log(scale);
+                
+                //                if (focus !== d) zoomToBox([(focus.x-d.x) * scale, (focus.y - d.y) * scale], scale);
+                if (focus !== d) zoomToBox([translateX, translateY], scale);
+                //Check if scale
+                //if (focus !== d) zoomToBox([0, 0],1.5);
                 if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation();
             });
 
             nodes.forEach(function (node) {
                 if (node.parent.data.name == "root") {
                     var polygonCluster = findGroupPolygon(node.data.name, viz.clusters);
-                    var point = getRandomInPolygon(polygonCluster);
+                    var nodeName = node.data.name;
+                    var point = placementMapping[nodeName];
+
                     var offsetX = 350;
                     var diffX = (point[0] - offsetX) - node.x;
                     var diffY = point[1] - node.y;
-                    node.x += diffX;
-                    node.y += diffY;
-                    node.polygon = polygonCluster;
-                    node.children.forEach(function (childNode) {
-                        childNode.x += diffX;
-                        childNode.y += diffY;
-                        childNode.polygon = polygonCluster;
-                        childNode.children.forEach(function (childNode) {
-                            childNode.x += diffX;
-                            childNode.y += diffY;
-                            childNode.polygon = polygonCluster;
-                            if (childNode.children != null) {
-                                childNode.children.forEach(function (childNode) {
-                                    childNode.x += diffX;
-                                    childNode.y += diffY;
-                                    childNode.polygon = polygonCluster;
-                                    if (childNode.children != null) {
-                                        childNode.children.forEach(function (childNode) {
-                                            childNode.x += diffX;
-                                            childNode.y += diffY;
-                                            childNode.polygon = polygonCluster;
-                                        })
-                                    }
-                                })
-                            }
-                        })
-                    })
+                    shiftNodeSubTree(node, polygonCluster, diffX, diffY);
                 }
             })
+
+
 
             var text = g.selectAll("text")
                         .data(nodes)
@@ -619,19 +709,19 @@ d3.csv("FoodTrendData.csv",
             var node = g.selectAll("circle,text");
 
             svg
-            .style("background", color(-1))
+            .style("background", "#393939")
             .on("click", function () {
-                console.log("Svg click"); console.log(node); zoom(root, circle, node);
-                zoomToBox([0,0], 1)
+                zoom(root, circle, node);
+                zoomToBox([0, 0], 1)
 
             });
 
             g2.on("click", function () {
-                console.log("g2 click");
                 zoom(root, circle, node);
                 zoomToBox([0, 0], 1);
             })
             zoomTo([root.x, root.y, root.r * 2 + margin], node, circle);
+            zoomToBox([0, 0], 1);
 
             function zoom(d, circle, node) {
                 var focus0 = focus; focus = d;
@@ -651,9 +741,8 @@ d3.csv("FoodTrendData.csv",
                     .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
 
                 //console.log("observations");
-                if (focus.x == root.x && focus.y == root.y)
-                {
-                  //  console.log("test root");
+                if (focus.x == root.x && focus.y == root.y) {
+                    //  console.log("test root");
                 }
 
                 //console.log(focus.x - focus0.x)
@@ -663,26 +752,40 @@ d3.csv("FoodTrendData.csv",
 
             }
 
-            function zoomToBox(translate, scale)
-            {
-                console.log(translate)
+            
+
+
+            function zoomToBox(translate, scale) {
                 //if (Math.abs(root.x) == Math.abs(translate[0]) && Math.abs(root.y) == Math.abs(translate[1]))
-                 //   console.log("test");
+                //   console.log("test");
                 //else {
                 //    console.log("Check1 : "+translate[0])
                 //    console.log("Check2: " + root.x);
                 //    console.log("Check3: " + translate[1])
                 //    console.log("Check4: " + root.y);
                 //}
-                g2.transition()
-                    .duration(750)
-                    .style("stroke-width", 1.5 / scale + "px")
-                    .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+
+                
+                viz.size = [viz.originalSize[0] * scale, viz.originalSize[1]*scale];
+                d3.selectAll('polygon').remove();
+                viz.clusters.map(function (c, i) {
+                    c.layout = initLayout(c, i, accent);
+                    return c;
+                });
+
+                //d3.selectAll('polygon')
+                //.transition()
+                //    .duration(750)
+                //    .style("stroke-width", 1.5 / scale + "px")
+                //    .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+
             }
 
             function zoomTo(v, node, circle) {
                 var k = diameter / v[2]; view = v;
-                node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
+                node.attr("transform", function (d) {
+                    return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")";
+                });
                 circle.attr("r", function (d) { return d.r * k; });
 
             }
@@ -781,7 +884,7 @@ d3.csv("FoodTrendData.csv",
             //Step Three Change triangle ares to polygons mathing food pyramid
             //Step Four change insides to circles/squares
             //Step five: Add slider to change size of nested items inside.
-
+            
 
         });
 

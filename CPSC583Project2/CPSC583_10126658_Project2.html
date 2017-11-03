@@ -6,7 +6,7 @@
             cursor: pointer;
         }
 
-           .node:hover {
+            .node:hover {
                 stroke: #000;
                 stroke-width: 1.5px;
             }
@@ -26,16 +26,82 @@
         .node--leaf {
             pointer-events: none;
         }
+
+        .hide {
+            display: none;
+        }
+
+        .svg {
+            padding: 0;
+        }
+
+        div.tooltip {
+            position: absolute;
+            text-align: center;
+            width: 110px;
+            height: 100px;
+            padding: 2px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        body {
+            background-color: #393939;
+            font-size: 14px;
+            font-family: 'Raleway', sans-serif;
+        }
+
+        p {
+            color: white;
+            margin: 50px;
+        }
+
+        a {
+            color: #4FDEF2;
+        }
+
+        .axis {
+            fill: gray;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+
+            .axis .halo {
+                stroke: gray;
+                stroke-width: 4px;
+                stroke-linecap: round;
+            }
+
+        .slider .handle path {
+            stroke: white;
+            stroke-width: 3px;
+            stroke-linecap: round;
+            pointer-events: none;
+        }
+
+        .slider .handle text {
+            fill: white;
+            text-align: center;
+            font-size: 18px;
+        }
     </style>
     <title></title>
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="https://d3js.org/d3-ease.v1.min.js"></script>
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="CPSC583_10126658_Project2.js"></script>
 
 </head>
 
 <body>
-    <svg width="1180" height="960"></svg>
+    <svg width="1180" height="980"></svg>
+
 </body>
 </html>
