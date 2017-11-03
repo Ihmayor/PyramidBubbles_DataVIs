@@ -1,215 +1,51 @@
 ﻿<!DOCTYPE html>
-<style>
-            circle {
-            fill: rgb(31, 119, 180);
-            fill-opacity: .25;
-            stroke: rgb(31, 119, 180);
-            stroke-width: 1px;
-        }
-
-        .leaf circle {
-            fill: #ff7f0e;
-            fill-opacity: 1;
-        }
-
-        text {
-            font: 10px sans-serif;
-            text-anchor: middle;
-        }
-</style>
+<meta charset="utf-8">
 <body>
-    <svg width="960" height="960"></svg>
-    <button id="random-btn" style="position: absolute; top: 0; right: 0;">Randomize Data</button>
-    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//d3js.org/d3.v3.min.js"></script>
     <script>
-        var data = {
-            "name": "flare",
-            "children": [{
-                "name": "analytics",
-                "children": [{
-                    "name": "cluster",
-                    "children": [{
-                        "name": "AgglomerativeCluster",
-                        "size": 3938
-                    }, {
-                        "name": "CommunityStructure",
-                        "size": 3812
-                    }, {
-                        "name": "HierarchicalCluster",
-                        "size": 6714
-                    }, {
-                        "name": "MergeEdge",
-                        "size": 743
-                    }]
-                }, {
-                    "name": "graph",
-                    "children": [{
-                        "name": "BetweennessCentrality",
-                        "size": 3534
-                    }, {
-                        "name": "LinkDistance",
-                        "size": 5731
-                    }, {
-                        "name": "MaxFlowMinCut",
-                        "size": 7840
-                    }, {
-                        "name": "ShortestPaths",
-                        "size": 5914
-                    }, {
-                        "name": "SpanningTree",
-                        "size": 3416
-                    }]
-                }, {
-                    "name": "optimization",
-                    "children": [{
-                        "name": "AspectRatioBanker",
-                        "size": 7074
-                    }]
-                }]
-            }, {
-                "name": "animate",
-                "children": [{
-                    "name": "Easing",
-                    "size": 17010
-                }, {
-                    "name": "FunctionSequence",
-                    "size": 5842
-                }, {
-                    "name": "interpolate",
-                    "children": [{
-                        "name": "ArrayInterpolator",
-                        "size": 1983
-                    }, {
-                        "name": "ColorInterpolator",
-                        "size": 2047
-                    }, {
-                        "name": "DateInterpolator",
-                        "size": 1375
-                    }, {
-                        "name": "Interpolator",
-                        "size": 8746
-                    }, {
-                        "name": "MatrixInterpolator",
-                        "size": 2202
-                    }, {
-                        "name": "NumberInterpolator",
-                        "size": 1382
-                    }, {
-                        "name": "ObjectInterpolator",
-                        "size": 1629
-                    }, {
-                        "name": "PointInterpolator",
-                        "size": 1675
-                    }, {
-                        "name": "RectangleInterpolator",
-                        "size": 2042
-                    }]
-                }, {
-                    "name": "ISchedulable",
-                    "size": 1041
-                }, {
-                    "name": "Parallel",
-                    "size": 5176
-                }, {
-                    "name": "Pause",
-                    "size": 449
-                }, {
-                    "name": "Scheduler",
-                    "size": 5593
-                }, {
-                    "name": "Sequence",
-                    "size": 5534
-                }, {
-                    "name": "Transition",
-                    "size": 9201
-                }, {
-                    "name": "Transitioner",
-                    "size": 19975
-                }, {
-                    "name": "TransitionEvent",
-                    "size": 1116
-                }, {
-                    "name": "Tween",
-                    "size": 6006
-                }]
-            }]
-        };
 
-        var root;
+        var w = 960,
+            h = 500,
+            nodes = [],
+            node;
 
-        var svg = d3.select("svg"),
-          diameter = +svg.attr("width"),
-          g = svg.append("g").attr("transform", "translate(2,2)"),
-          format = d3.format(",d");
+        var vis = d3.select("body").append("svg")
+            .attr("width", w)
+            .attr("height", h);
 
-        var pack = d3.pack()
-          .size([diameter - 4, diameter - 4]);
+        var force = d3.layout.force()
+            .nodes(nodes)
+            .links([])
+            .size([w, h]);
 
-        function update(data) {
-            root = d3.hierarchy(data)
-              .sum(function (d) {
-                  return d.size;
-              })
-              .sort(function (a, b) {
-                  return b.value - a.value;
-              });
+        force.on("tick", function (e) {
+            vis.selectAll("path")
+                .attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
+        });
 
-            var node = g.selectAll(".node")
-              .data(pack(root).descendants())
-              .enter().append("g")
-              .attr("class", function (d) {
-                  return d.children ? "node" : "leaf node";
-              })
-              .attr("transform", function (d) {
-                  return "translate(" + d.x + "," + d.y + ")";
-              });
+        setInterval(function () {
 
-            var nodeUpdate = g.selectAll(".node")
-            .attr("transform", function (d) {
-                return "translate(" + d.x + "," + d.y + ")";
-            });;
-
-            var circleUpdate = nodeUpdate.select("circle")
-            .attr("r", function (d) {
-                return d.r;
+            // Add a new random shape.
+            nodes.push({
+                type: d3.svg.symbolTypes[~~(Math.random() * d3.svg.symbolTypes.length)],
+                size: Math.random() * 300 + 100
             });
 
+            // Restart the layout.
+            force.start();
 
-            node.append("title")
-              .text(function (d) {
-                  return d.data.name + "\n" + format(d.value);
-              });
+            vis.selectAll("path")
+                .data(nodes)
+              .enter().append("path")
+                .attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; })
+                .attr("d", d3.svg.symbol()
+                  .size(function (d) { return d.size; })
+                  .type(function (d) { console.log(d.type); return d.type; }))
+                .style("fill", "steelblue")
+                .style("stroke", "white")
+                .style("stroke-width", "1.5px")
+                .call(force.drag);
 
-            node.append("circle")
-              .attr("r", function (d) {
-                  return d.r;
-              });
+        }, 1000);
 
-            node.filter(function (d) {
-                return !d.children;
-            }).append("text")
-              .attr("dy", "0.3em")
-              .text(function (d) {
-                  return d.data.name.substring(0, d.r / 3);
-              });
-        }
-
-        update(data);
-        document.querySelector('#random-btn').addEventListener('click', function () {
-            (function randomizeNode(node) {
-                console.log(node);
-                if (node.size) {
-                    node.size *= Math.random() * 10;
-                }
-                if (node.children) {
-                    node.children.forEach(function (childNode) {
-                        randomizeNode(childNode);
-                    });
-                }
-            }(data));
-            console.log('updated data');
-            update(data);
-            // data should be updated, now update vis
-        });
     </script>
-</body>
