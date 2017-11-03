@@ -191,7 +191,7 @@ function createItemObject(d) {
         "desc3": d.desc3 != null && d.desc3 != "" ? d.desc3.trim() : "",
         "desc4": d.desc4 != null && d.desc4 != "" ? d.desc4.trim() : "",
         "code": d.code,
-        "unit":d.unit,
+        "unit": d.unit,
         "1974": d.year1974,
         "1975": d.year1975,
         "1976": d.year1976,
@@ -519,6 +519,9 @@ d3.csv("FoodTrendData.csv",
             ///Define Patterns
             var defs = svg.append('svg:defs');
 
+           
+
+
             defs.append("svg:pattern")
             .attr("id", "dairy_image")
             .attr("width", 500)
@@ -759,54 +762,12 @@ d3.csv("FoodTrendData.csv",
                      .attr("class", "tooltip")
                      .style("opacity", 0);
 
+
             //Append Circle
-            var circle = g.selectAll(".shapes")
+            var circle = g.selectAll("circle")
                   .data(nodes)
                   .enter()
                     .append("circle")
-                    .on("mouseover", function (d) {
-                          //Highlight the bar hovered over at this moment
-                          d3.select(this).style("stroke-width", 5).style("stroke", "red")
-                          //Show the tool tip with associated data
-                          div.transition()
-                         .duration(200)
-                         .style("opacity", .6);
-                          div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + "<br/>Item Name: <br/>" + d.data.name)
-                              .style("left", (d3.event.pageX) + "px")
-                              .style("top", (d3.event.pageY - 28) + "px")
-                              .style('font-size', '10px')
-                      })
-                    .on("mousemove", function (d) {
-                        div.transition()
-                       .duration(200)
-                       .style("opacity", .6);
-                        div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + "<br/>Item Name: <br/>" + d.data.name)
-                            .style("left", (d3.event.pageX) + "px")
-                            .style("top", (d3.event.pageY - 28) + "px")
-                            .style('font-size', '10px')
-                    })
-                    .on("mouseleave", function () {
-                        //Remove highlight when no longer hovered over
-                        d3.select(this).style("stroke-width", 0).style("stroke", "red")
-
-                        //Fade away the tooltip
-                        div.transition()
-                                    .style('opacity', 0)
-                                    .duration(500)
-
-                    })
-                    .attr("class", function (d) { return d.parent ? d.children ? "node" + d.data.name : "node node--leaf" : "node node--root"; })
-                    .style("fill", function (d) { return d.children ? color(d.depth) : null; })
-                    .style("opacity", 0.5)
-                    .on("click", function (d) {
-                        //Todo : make transparent nodes
-                if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation();
-            });
-
-            //Append Circle
-            var test = g.selectAll(".shapes")
-                  .data(nodes)
-                  .enter().append("rect")
                     .on("mouseover", function (d) {
                         //Highlight the bar hovered over at this moment
                         d3.select(this).style("stroke-width", 5).style("stroke", "red")
@@ -839,13 +800,31 @@ d3.csv("FoodTrendData.csv",
 
                     })
                     .attr("class", function (d) { return d.parent ? d.children ? "node" + d.data.name : "node node--leaf" : "node node--root"; })
-                    .style("fill", function (d) { return d.children ? color(d.depth) : null; })
+                    .style("fill", function (d) {
+                                defs.append("svg:linearGradient")
+                                .attr("id", "area-"+d.data.name)
+                                .attr("gradientUnits", "userSpaceOnUse")
+                                .attr("x1", 0).attr("y1", 0)
+                                .attr("x2", 0).attr("y2", 10)
+                                .selectAll("stop")
+                                .data([
+                                { offset: "0%", color: d.children ? color(d.depth) : "#f2dee4" },
+                                { offset: "90%", color: d.children ? color(d.depth) : "#f2dee4" },
+                                { offset: "100%", color: d.data.unit.indexOf("ml") > -1 || d.data.unit.indexOf("eq") > -1 ? "#e8f7cf" : "#f2dee4" }
+                                ])
+                                .enter().append("stop")
+                                .attr("offset", function (d) { return d.offset; })
+                                .attr("stop-color", function (d) { return d.color; });
+
+                        var str = "url(#area-"+d.data.name+")";
+                        return str;
+//                        return d.children ? color(d.depth) : null;
+                    })
                     .style("opacity", 0.5)
                     .on("click", function (d) {
                         //Todo : make transparent nodes
                         if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation();
                     });
-
 
             //Adjust Nodes to match  the right position
             nodes.forEach(function (node) {
@@ -861,14 +840,15 @@ d3.csv("FoodTrendData.csv",
                 }
             })
 
+
             //
             var text = g.selectAll("text")
                         .data(nodes)
                         .enter().append("text")
                         .attr("class", "label")
                         .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
-                        .style("display", function (d) { return d.parent === root || d.parent.parent ===root ? "inline" : "none"; })
-                        .text(function (d) { return d.data.name;});
+                        .style("display", function (d) { return d.parent === root || d.parent.parent === root ? "inline" : "none"; })
+                        .text(function (d) { return d.data.name; });
 
             var node = g.selectAll("circle,text");
 
@@ -1107,28 +1087,27 @@ d3.csv("FoodTrendData.csv",
                             var sums = [0, 0, 0, 0, 0];
                             var sums2 = [0, 0, 0, 0, 0];
                             treeJson.root.children.forEach(function (child) {
-                              
+
                                 for (var i = 0; i < foodPyramidMapping.length; i++) {
-                                        if (foodPyramidMapping[i].list.indexOf(child.desc1) > -1) {
-                                            sums[i] = sums[i] + child[currentYear];
-                                            break;
-                                        }
+                                    if (foodPyramidMapping[i].list.indexOf(child.desc1) > -1) {
+                                        sums[i] = sums[i] + child[currentYear];
+                                        break;
                                     }
+                                }
                             });
 
                             treeJson.root.children.forEach(function (child) {
                                 for (var i = 0; i < foodPyramidMapping.length; i++) {
                                     if (foodPyramidMapping[i].list.indexOf(child.desc1) > -1) {
-                                        sums2[i] = sums2[i] + child[currentYear-1];
+                                        sums2[i] = sums2[i] + child[currentYear - 1];
                                         break;
                                     }
                                 }
                             });
 
 
-                            
-                            for (var i = 0; i < foodPyramidMapping.length; i++)
-                            {
+
+                            for (var i = 0; i < foodPyramidMapping.length; i++) {
                                 var polygonName = foodPyramidMapping[i].name;
                                 var polygon = viz.clusters.filter(function (d) { if (d.name == polygonName) return d; })[0].layout;
                                 if (currentYear == 1974)
@@ -1137,7 +1116,7 @@ d3.csv("FoodTrendData.csv",
                                     polygon.attr("stroke", "green")
                                 else if (sums[i] == sums2[i])
                                     polygon.attr("stroke", "blue")
-                                else 
+                                else
                                     polygon.attr("stroke", "orange")
                             }
 
