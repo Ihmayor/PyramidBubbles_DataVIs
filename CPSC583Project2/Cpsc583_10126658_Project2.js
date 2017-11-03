@@ -233,7 +233,7 @@ function createItemObject(d) {
         "2012": d.year2012,
         "2013": d.year2013,
         "2014": d.year2014,
-        "size": d.year1993
+        "size": d.year1974
     }
 
 }
@@ -305,7 +305,7 @@ function createDeepChild(name, d) {
         "2012": d.year2012,
         "2013": d.year2013,
         "2014": d.year2014,
-        "size": d.year1993
+        "size": d.year1974
     }
 }
 function shiftNodeSubTree(node, polygonCluster, diffX, diffY) {
@@ -390,14 +390,15 @@ d3.csv("FoodTrendData.csv",
 
            if (typeof treeJson.root === 'undefined' || treeJson.root === null) {
                var item = createItemObject(d);
+               var arrayObj = createDeepChild(d.desc1, d);
+               arrayObj.children.push(item);
                var root = {
-                   "name": "root", "children": [{
-                       "name": d.desc1, "children": [item], "size": d.year1993
-                   }]
+                   "name": "root", "children": [arrayObj], "size": d.year1974
                };
                treeJson.root = root;
                var nested = createNestedChild(d);
                item.children.push(nested);
+
            }
            else {
                //Get Desc 1 Array 
@@ -406,14 +407,18 @@ d3.csv("FoodTrendData.csv",
                if (foundArray == null) {
                    var item = createItemObject(d);
                    var nested = createNestedChild(d);
+                   var arrayObj = createDeepChild(d.desc1, d);
                    item.children.push(nested);
-                   var newArray = { "name": d.desc1, "children": [item], "size": d.year1993 }
+                   var newArray = createDeepChild(d.desc1, d);
+                   newArray.children.push(item);
                    treeJson.root.children.push(newArray);
                }
                    //If it does then add to the branches in sub tree
                else {
                    //               console.log("found array")
-                   //              console.log(foundArray);
+                   //              console.log(foundArray.size);
+
+
                    var item = createItemObject(d);
                    //Depth 
                    var desc2Child = null;
@@ -465,7 +470,6 @@ d3.csv("FoodTrendData.csv",
                            }
                        }
                    }
-                   foundArray.size = foundArray.size + d.year1993;
                }
            }
 
@@ -715,6 +719,7 @@ d3.csv("FoodTrendData.csv",
             var focus = root,
                 nodes = pack(root).descendants(),
                 view;
+
             nodes.shift();
 
             //Create tooltip div
@@ -723,9 +728,10 @@ d3.csv("FoodTrendData.csv",
                      .style("opacity", 0);
 
             var circle = g.selectAll("circle")
-          .data(nodes)
-          .enter().append("circle")
+                  .data(nodes)
+                  .enter().append("circle")
                       .on("mouseover", function (d) {
+                          console.log(d);
                           //Highlight the bar hovered over at this moment
                           d3.select(this).style("stroke-width", 5).style("stroke", "red")
                           //Show the tool tip with associated data
@@ -851,7 +857,7 @@ d3.csv("FoodTrendData.csv",
                     });
 
                 transition.selectAll("text")
-                  .filter(function (d) { console.log($(this)[0].className.baseVal); return (d.parent === focus || this.style.display === "inline") && $(this)[0].className.baseVal.indexOf("labelSlider") === -1; })
+                  .filter(function (d) { if (d == null) return false; return (d.parent === focus || this.style.display === "inline") })
                     .style("fill-opacity", function (d) { return d.parent === focus ? 1 : 0; })
                     .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
                     .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
@@ -1018,8 +1024,6 @@ d3.csv("FoodTrendData.csv",
                 .call(d3.drag()
                     .on("start.interrupt", function () { slider.interrupt(); })
                     .on("start drag", function (t) {
-                        //                        console.log(x(x.invert(d3.event.x)));
-                        console.log(Math.round(x2(d3.event.x)))
                         hue(x.invert(d3.event.x));
                     }));
 
@@ -1047,13 +1051,12 @@ d3.csv("FoodTrendData.csv",
             var handle = slider.insert("circle", ".track-overlay")
                 .attr("class", "handle")
                 .attr("r", 9)
-                .insert("g", ".track-overlay")
-                .attr("class", "labelSlider")
-                    .selectAll("text")
-                    .data(x.ticks(40))
-                    .append('text')
-                    .text(function () { return "t"; })
 
+            var textLabel = slider.insert("text", ".track-overlay")
+             .attr("class", "sliderLabel")
+             .attr("y", -30)
+             .attr("x", -8)
+             .text(function () { return "1974"; })
 
             slider.transition() // Gratuitous intro!
                 .duration(750)
@@ -1063,9 +1066,82 @@ d3.csv("FoodTrendData.csv",
                 });
 
             function hue(h) {
-                handle.attr("cx", x(h));
+                if (d3.event != null) {
+                    handle.attr("cx", x(Math.round(x2(d3.event.x))));
+                    textLabel.attr("x", x(Math.round(x2(d3.event.x))) - 8);
+                    textLabel.text(
+                        function (d) {
+                            var currentYear = Math.round(x2(d3.event.x)) + 1974;
+                            (function randomizeNode(node) {
+                                if ( node.size ) {
+                                    node.size = d3.sum(node.children.map(function (d) { return d[currentYear]; }));
+                                }
+                                if (node.children) {
+                                    node.children.forEach(function (childNode) {
+                                        randomizeNode(childNode);
+                                    });
+                                }
+                            }(treeJson.root));
+
+                            updateVis(data);
+
+                            return Math.round(x2(d3.event.x)) + 1974;
+                        }
+                    );
+                }
                 svg.style("background-color", d3.hsl(h, 0.8, 0.8));
             }
+
+
+            function updateVis(data) {
+                root = d3.hierarchy(data)
+                      .sum(function (d) {
+                          return d.size;
+                      })
+                      .sort(function (a, b) {
+                          return b.value - a.value;
+                      });
+
+                var node = g.selectAll(".node")
+                  .data(pack(root).descendants())
+                  .enter().append("g")
+                  .attr("class", function (d) {
+                      return d.children ? "node" : "leaf node";
+                  })
+                  .attr("transform", function (d) {
+                      return "translate(" + d.x + "," + d.y + ")";
+                  });
+
+                var nodeUpdate = g.selectAll(".node")
+                .attr("transform", function (d) {
+                    return "translate(" + d.x + "," + d.y + ")";
+                });;
+
+                var circleUpdate = nodeUpdate.select("circle")
+                .attr("r", function (d) {
+                    return d.r;
+                });
+
+
+                node.append("title")
+                  .text(function (d) {
+                      //return d.data.name + "\n" + format(d.value);
+                  });
+
+                node.append("circle")
+                  .attr("r", function (d) {
+                      return d.r;
+                  });
+
+                node.filter(function (d) {
+                    return !d.children;
+                }).append("text")
+                  .attr("dy", "0.3em")
+                  .text(function (d) {
+                      return d.data.name.substring(0, d.r / 3);
+                  });
+            };
+
 
 
         });

@@ -1,56 +1,215 @@
 ﻿<!DOCTYPE html>
+<style>
+            circle {
+            fill: rgb(31, 119, 180);
+            fill-opacity: .25;
+            stroke: rgb(31, 119, 180);
+            stroke-width: 1px;
+        }
+
+        .leaf circle {
+            fill: #ff7f0e;
+            fill-opacity: 1;
+        }
+
+        text {
+            font: 10px sans-serif;
+            text-anchor: middle;
+        }
+</style>
 <body>
-    <script src="//d3js.org/d3.v4.min.js"></script>
+    <svg width="960" height="960"></svg>
+    <button id="random-btn" style="position: absolute; top: 0; right: 0;">Randomize Data</button>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
     <script>
-
-        var 
-         window.innerWidth
-        var height = window.innerHeight
-
-        var nodes = d3.range(480).map(function () { return { r: Math.random() * 12 + 4 }; }),
-            root = nodes[0];
-        var color = d3.scaleOrdinal().range(d3.schemeCategory20)
-
-        root.radius = 0;
-        root.fixed = true;
-
-        const forceX = d3.forceX(width / 2).strength(0.015)
-        const forceY = d3.forceY(height / 2).strength(0.015)
-
-
-        var force = d3.forceSimulation()
-        .velocityDecay(0.2)
-        .force("x", forceX)
-        .force("y", forceY)
-        .force("collide", d3.forceCollide().radius(function (d) {
-            if (d === root) {
-                return Math.random() * 50 + 1;
-            }
-            return d.r + 0.5;
-        }).iterations(5))
-        .nodes(nodes).on("tick", ticked);
-
-        var svg = d3.select("body").append("svg")
-        .attr("width", width)
-        .attr("height", height);
-
-        svg.selectAll("circle")
-            .data(nodes.slice(1))
-            .enter().append("circle")
-            .attr("r", function (d) { return d.r; })
-            .style("fill", function (d, i) { return color(i % 3); });
-
-        function ticked(e) {
-            svg.selectAll("circle")
-                .attr("cx", function (d) { return d.x; })
-                .attr("cy", function (d) { return d.y; });
+        var data = {
+            "name": "flare",
+            "children": [{
+                "name": "analytics",
+                "children": [{
+                    "name": "cluster",
+                    "children": [{
+                        "name": "AgglomerativeCluster",
+                        "size": 3938
+                    }, {
+                        "name": "CommunityStructure",
+                        "size": 3812
+                    }, {
+                        "name": "HierarchicalCluster",
+                        "size": 6714
+                    }, {
+                        "name": "MergeEdge",
+                        "size": 743
+                    }]
+                }, {
+                    "name": "graph",
+                    "children": [{
+                        "name": "BetweennessCentrality",
+                        "size": 3534
+                    }, {
+                        "name": "LinkDistance",
+                        "size": 5731
+                    }, {
+                        "name": "MaxFlowMinCut",
+                        "size": 7840
+                    }, {
+                        "name": "ShortestPaths",
+                        "size": 5914
+                    }, {
+                        "name": "SpanningTree",
+                        "size": 3416
+                    }]
+                }, {
+                    "name": "optimization",
+                    "children": [{
+                        "name": "AspectRatioBanker",
+                        "size": 7074
+                    }]
+                }]
+            }, {
+                "name": "animate",
+                "children": [{
+                    "name": "Easing",
+                    "size": 17010
+                }, {
+                    "name": "FunctionSequence",
+                    "size": 5842
+                }, {
+                    "name": "interpolate",
+                    "children": [{
+                        "name": "ArrayInterpolator",
+                        "size": 1983
+                    }, {
+                        "name": "ColorInterpolator",
+                        "size": 2047
+                    }, {
+                        "name": "DateInterpolator",
+                        "size": 1375
+                    }, {
+                        "name": "Interpolator",
+                        "size": 8746
+                    }, {
+                        "name": "MatrixInterpolator",
+                        "size": 2202
+                    }, {
+                        "name": "NumberInterpolator",
+                        "size": 1382
+                    }, {
+                        "name": "ObjectInterpolator",
+                        "size": 1629
+                    }, {
+                        "name": "PointInterpolator",
+                        "size": 1675
+                    }, {
+                        "name": "RectangleInterpolator",
+                        "size": 2042
+                    }]
+                }, {
+                    "name": "ISchedulable",
+                    "size": 1041
+                }, {
+                    "name": "Parallel",
+                    "size": 5176
+                }, {
+                    "name": "Pause",
+                    "size": 449
+                }, {
+                    "name": "Scheduler",
+                    "size": 5593
+                }, {
+                    "name": "Sequence",
+                    "size": 5534
+                }, {
+                    "name": "Transition",
+                    "size": 9201
+                }, {
+                    "name": "Transitioner",
+                    "size": 19975
+                }, {
+                    "name": "TransitionEvent",
+                    "size": 1116
+                }, {
+                    "name": "Tween",
+                    "size": 6006
+                }]
+            }]
         };
 
-        svg.on("mousemove", function () {
-            var p1 = d3.mouse(this);
-            root.fx = p1[0];
-            root.fy = p1[1];
-            force.alphaTarget(0.3).restart();//reheat the simulation
+        var root;
+
+        var svg = d3.select("svg"),
+          diameter = +svg.attr("width"),
+          g = svg.append("g").attr("transform", "translate(2,2)"),
+          format = d3.format(",d");
+
+        var pack = d3.pack()
+          .size([diameter - 4, diameter - 4]);
+
+        function update(data) {
+            root = d3.hierarchy(data)
+              .sum(function (d) {
+                  return d.size;
+              })
+              .sort(function (a, b) {
+                  return b.value - a.value;
+              });
+
+            var node = g.selectAll(".node")
+              .data(pack(root).descendants())
+              .enter().append("g")
+              .attr("class", function (d) {
+                  return d.children ? "node" : "leaf node";
+              })
+              .attr("transform", function (d) {
+                  return "translate(" + d.x + "," + d.y + ")";
+              });
+
+            var nodeUpdate = g.selectAll(".node")
+            .attr("transform", function (d) {
+                return "translate(" + d.x + "," + d.y + ")";
+            });;
+
+            var circleUpdate = nodeUpdate.select("circle")
+            .attr("r", function (d) {
+                return d.r;
+            });
+
+
+            node.append("title")
+              .text(function (d) {
+                  return d.data.name + "\n" + format(d.value);
+              });
+
+            node.append("circle")
+              .attr("r", function (d) {
+                  return d.r;
+              });
+
+            node.filter(function (d) {
+                return !d.children;
+            }).append("text")
+              .attr("dy", "0.3em")
+              .text(function (d) {
+                  return d.data.name.substring(0, d.r / 3);
+              });
+        }
+
+        update(data);
+        document.querySelector('#random-btn').addEventListener('click', function () {
+            (function randomizeNode(node) {
+                console.log(node);
+                if (node.size) {
+                    node.size *= Math.random() * 10;
+                }
+                if (node.children) {
+                    node.children.forEach(function (childNode) {
+                        randomizeNode(childNode);
+                    });
+                }
+            }(data));
+            console.log('updated data');
+            update(data);
+            // data should be updated, now update vis
         });
     </script>
 </body>
