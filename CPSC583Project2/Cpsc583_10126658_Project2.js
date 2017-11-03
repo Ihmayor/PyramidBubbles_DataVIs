@@ -599,7 +599,7 @@ d3.csv("FoodTrendData.csv",
                 var polygon = g2.append('polygon')
                   .attr('points', cluster.polygon)
                   .attr('stroke', '#000')
-                  .attr('fill', function () { console.log(i); return accent(i); })
+                  .attr('fill', function () {return accent(i); })
                     .attr('fill', function () {
                         if (cluster.name == "MilkEggsFish") {
                             return "url(#dairy_image)";
@@ -710,8 +710,6 @@ d3.csv("FoodTrendData.csv",
                 .size([diameter - margin, diameter - margin])
                 .padding(2);
 
-            var childrenRef = [];
-
             var root = d3.hierarchy(treeJson.root)
                     .sum(function (d) { return d.size; })
                     .sort(function (a, b) { return b.value - a.value; });
@@ -731,7 +729,6 @@ d3.csv("FoodTrendData.csv",
                   .data(nodes)
                   .enter().append("circle")
                       .on("mouseover", function (d) {
-                          console.log(d);
                           //Highlight the bar hovered over at this moment
                           d3.select(this).style("stroke-width", 5).style("stroke", "red")
                           //Show the tool tip with associated data
@@ -782,9 +779,6 @@ d3.csv("FoodTrendData.csv",
 
                 //                translateX += offsetX;
                 //                translateY += offsetY;
-
-                console.log(scale);
-
 
                 var transform = d3.zoomIdentity;
                 d3.selectAll('polygon')
@@ -867,10 +861,6 @@ d3.csv("FoodTrendData.csv",
                     //  console.log("test root");
                 }
 
-                //console.log(focus.x - focus0.x)
-                //console.log(focus.y - focus0.y);
-                //[newFocus.x - oldFocus.x]
-                //[newFocus.x - oldFocus.x]
 
             }
 
@@ -1021,11 +1011,15 @@ d3.csv("FoodTrendData.csv",
                 .attr("class", "track-inset")
               .select(function () { return this.parentNode.appendChild(this.cloneNode(true)); })
                 .attr("class", "track-overlay")
+                .on("drag", function (d) {
+                    hue(x.invert(d3.event.x))
+                })
                 .call(d3.drag()
                     .on("start.interrupt", function () { slider.interrupt(); })
                     .on("start drag", function (t) {
                         hue(x.invert(d3.event.x));
                     }));
+                
 
             slider.insert("g", ".track-overlay")
                 .attr("class", "ticks")
@@ -1072,19 +1066,22 @@ d3.csv("FoodTrendData.csv",
                     textLabel.text(
                         function (d) {
                             var currentYear = Math.round(x2(d3.event.x)) + 1974;
-                            (function randomizeNode(node) {
-                                if ( node.size ) {
-                                    node.size = d3.sum(node.children.map(function (d) { return d[currentYear]; }));
+                            (function updateNodeYear(node) {
+                                if (node.size) {
+                                    if (node.children.length == 0) {
+                                        node.size = node[currentYear];
+                                    }
+                                    else {
+                                        node.size = d3.sum(node.children.map(function (d) { return d[currentYear]; }));
+                                    }
                                 }
                                 if (node.children) {
                                     node.children.forEach(function (childNode) {
-                                        randomizeNode(childNode);
+                                        updateNodeYear(childNode);
                                     });
                                 }
                             }(treeJson.root));
-
-                            updateVis(data);
-
+                            updateVis(treeJson.root);
                             return Math.round(x2(d3.event.x)) + 1974;
                         }
                     );
@@ -1094,7 +1091,12 @@ d3.csv("FoodTrendData.csv",
 
 
             function updateVis(data) {
-                root = d3.hierarchy(data)
+
+                var pack2 = d3.pack()
+                .size([diameter - margin, diameter - margin])
+                .padding(2);
+
+                var root2 = d3.hierarchy(data)
                       .sum(function (d) {
                           return d.size;
                       })
@@ -1102,44 +1104,32 @@ d3.csv("FoodTrendData.csv",
                           return b.value - a.value;
                       });
 
-                var node = g.selectAll(".node")
-                  .data(pack(root).descendants())
-                  .enter().append("g")
-                  .attr("class", function (d) {
-                      return d.children ? "node" : "leaf node";
-                  })
-                  .attr("transform", function (d) {
-                      return "translate(" + d.x + "," + d.y + ")";
-                  });
-
-                var nodeUpdate = g.selectAll(".node")
-                .attr("transform", function (d) {
-                    return "translate(" + d.x + "," + d.y + ")";
-                });;
-
-                var circleUpdate = nodeUpdate.select("circle")
-                .attr("r", function (d) {
-                    return d.r;
-                });
+                var nodes2 = pack2(root2).descendants();
+                root.each(function (node) {
+                    var foundNode = nodes2.filter(function(n) {
+                        return n.data.name == node.data.name;
+                    });
+                    node.r = foundNode[0].r;
+                    node.x = foundNode[0].x;
+                    node.y = foundNode[0].y;
+                })
 
 
-                node.append("title")
-                  .text(function (d) {
-                      //return d.data.name + "\n" + format(d.value);
-                  });
 
-                node.append("circle")
-                  .attr("r", function (d) {
-                      return d.r;
-                  });
+                nodes.forEach(function (node) {
+                    if (node.parent.data.name == "root") {
+                        var polygonCluster = findGroupPolygon(node.data.name, viz.clusters);
+                        var nodeName = node.data.name;
+                        var point = placementMapping[nodeName];
 
-                node.filter(function (d) {
-                    return !d.children;
-                }).append("text")
-                  .attr("dy", "0.3em")
-                  .text(function (d) {
-                      return d.data.name.substring(0, d.r / 3);
-                  });
+                        var offsetX = 350;
+                        var diffX = (point[0] - offsetX) - node.x;
+                        var diffY = point[1] - node.y;
+                        shiftNodeSubTree(node, polygonCluster, diffX, diffY);
+                    }
+                })
+
+               
             };
 
 
