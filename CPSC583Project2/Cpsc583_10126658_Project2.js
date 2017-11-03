@@ -181,10 +181,9 @@ function findChild(name, parent) {
     return returnArray;
 }
 
-
 function createItemObject(d) {
     return {
-        "name": d.desc2.trim(),
+        "name": d.desc2 != "" && d.desc2 != null ? d.desc2.trim() : d.desc1,
         "fullName": d.desc2 + d.desc3 + d.desc4,
         "children": [],
         "desc1": d.desc1,
@@ -249,8 +248,10 @@ function createNestedChild(d) {
             //  console.log("Desc4 " + d.desc4);
             deep4 = createDeepChild(d.desc4, d);
             deep3.children.push(deep4);
+            deep3.size = deep3.size+ d.year1974;
         }
         deep.children.push(deep3);
+        deep.size = deep.size + d.year1974;
     }
     return deep;
 }
@@ -308,6 +309,7 @@ function createDeepChild(name, d) {
         "size": d.year1974
     }
 }
+
 function shiftNodeSubTree(node, polygonCluster, diffX, diffY) {
     node.x += diffX;
     node.y += diffY;
@@ -338,9 +340,7 @@ function shiftNodeSubTree(node, polygonCluster, diffX, diffY) {
     })
 
 }
-var totalPolygons = [];
-
-//Load Up Data Points
+var totalPolygons = [];//Load Up Data Points
 d3.csv("FoodTrendData.csv",
        function (d) {
            //Format Dates
@@ -405,20 +405,21 @@ d3.csv("FoodTrendData.csv",
                foundArray = findArray(d.desc1);
                //If it does not exist creat the entire sub tree
                if (foundArray == null) {
+                   //Create D.desc1 layer Object
                    var item = createItemObject(d);
+                   //Create Children for this object;
                    var nested = createNestedChild(d);
-                   var arrayObj = createDeepChild(d.desc1, d);
-                   item.children.push(nested);
                    var newArray = createDeepChild(d.desc1, d);
+                   item.children.push(nested);
+                   item.size = item.size + nested.size;
                    newArray.children.push(item);
+                   newArray.size = newArray.size + item.size;
                    treeJson.root.children.push(newArray);
                }
                    //If it does then add to the branches in sub tree
                else {
                    //               console.log("found array")
                    //              console.log(foundArray.size);
-
-
                    var item = createItemObject(d);
                    //Depth 
                    var desc2Child = null;
@@ -445,6 +446,7 @@ d3.csv("FoodTrendData.csv",
                        var nested = createNestedChild(d);
                        item.children.push(nested);
                        foundArray.children.push(item);
+                       foundArray.size = foundArray.size+ d.year1974;
                        //              console.log("Push new Desc2 child");
                        //              console.log(item);
                    }
@@ -453,8 +455,7 @@ d3.csv("FoodTrendData.csv",
                            if (d.desc4 != '' && d.desc4 != null) {
                                desc4Child = createDeepChild(d.desc4, d);
                                desc3Child.children.push(desc4Child);
-                               //                    console.log("Push new Desc4 child");
-                               //                    console.log(desc4Child);
+                               desc3Child.size = desc3Child.size + d.year1974;
                            }
                        }
                        else {
@@ -463,10 +464,10 @@ d3.csv("FoodTrendData.csv",
                                if (d.desc4 != '' && d.desc4 != null) {
                                    desc4Child = createDeepChild(d.desc4, d);
                                    desc3Child.children.push(desc4Child);
+                                   desc3Child.size = desc3Child.size + d.year1974;
                                }
                                desc2Child.children.push(desc3Child);
-                               //                  console.log("Push new Desc3 child");
-                               //                  console.log(desc3Child);
+                               desc2Child.size = desc2Child.size + d.year1974;
                            }
                        }
                    }
@@ -475,13 +476,40 @@ d3.csv("FoodTrendData.csv",
 
            return d;
        },
-
         function (data) {
             var svg = d3.select("svg").attr('transform', "translate(0,0)scale(1,1)"),
             margin = 20,
             diameter = 480,
             g2 = svg.append("g"),
             g = svg.append("g").attr("transform", "translate(600," + diameter / 2 + ")");
+
+            var currentYear = 1974;
+            (function updateNodeYear(node) {
+                if (node.size) {
+                    if (node.children.length == 0) {
+                        node.size = node[currentYear];
+                    }
+                    else {
+                        node.size = d3.sum(node.children.map(function (d) {
+                            if (d.children.length == 0)
+                                return d[currentYear];
+                            else
+                                return d3.sum(node.children.map(function (d) {
+                                    if (d.children.length == 0)
+                                        return d[currentYear]
+                                    else
+                                        return d3.sum(node.children.map(function (d) { return d[currentYear] }));
+                                }))
+                        }));
+                    }
+                }
+                if (node.children) {
+                    node.children.forEach(function (childNode) {
+                        updateNodeYear(childNode);
+                    });
+                }
+            }(treeJson.root));
+
 
             ///Define Patterns
             var defs = svg.append('svg:defs');
@@ -599,7 +627,7 @@ d3.csv("FoodTrendData.csv",
                 var polygon = g2.append('polygon')
                   .attr('points', cluster.polygon)
                   .attr('stroke', '#000')
-                  .attr('fill', function () {return accent(i); })
+                  .attr('fill', function () { return accent(i); })
                     .attr('fill', function () {
                         if (cluster.name == "MilkEggsFish") {
                             return "url(#dairy_image)";
@@ -735,7 +763,7 @@ d3.csv("FoodTrendData.csv",
                           div.transition()
                          .duration(200)
                          .style("opacity", .6);
-                          div.html("Code: " + d.code + "<br/>Amount: " + d.size + "<br/>Item Name: <br/>" + d.name)
+                          div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + "<br/>Item Name: <br/>" + d.data.name)
                               .style("left", (d3.event.pageX) + "px")
                               .style("top", (d3.event.pageY - 28) + "px")
                               .style('font-size', '10px')
@@ -744,7 +772,7 @@ d3.csv("FoodTrendData.csv",
                         div.transition()
                        .duration(200)
                        .style("opacity", .6);
-                        div.html("Code: " + d.code + "<br/>Amount: " + d.size + "<br/>Item Name: <br/>" + d.name)
+                        div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + "<br/>Item Name: <br/>" + d.data.name)
                             .style("left", (d3.event.pageX) + "px")
                             .style("top", (d3.event.pageY - 28) + "px")
                             .style('font-size', '10px')
@@ -791,7 +819,6 @@ d3.csv("FoodTrendData.csv",
                 translateX = transform.x;
                 translateY = transform.y;
                 scale = transform.k;
-                console.log(transform);
                 //                if (focus !== d) zoomToBox([(focus.x-d.x) * scale, (focus.y - d.y) * scale], scale);
                 if (focus !== d) zoomToBox([translateX, translateY], scale);
                 //Check if scale
@@ -825,7 +852,7 @@ d3.csv("FoodTrendData.csv",
             var node = g.selectAll("circle,text");
 
             svg
-            .style("background", "#393939")
+            .style("background-color", "#f8faf9")
             .on("click", function () {
                 zoom(root, circle, node);
                 zoomToBox([0, 0], 1)
@@ -880,7 +907,7 @@ d3.csv("FoodTrendData.csv",
                 d3.selectAll('polygon')
                 .transition()
                     .duration(750)
-                    .style("stroke-width", 1.5 / scale + "px")
+                    .style("stroke-width", 10 + "px")
                     .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
 
             }
@@ -1019,7 +1046,7 @@ d3.csv("FoodTrendData.csv",
                     .on("start drag", function (t) {
                         hue(x.invert(d3.event.x));
                     }));
-                
+
 
             slider.insert("g", ".track-overlay")
                 .attr("class", "ticks")
@@ -1061,9 +1088,7 @@ d3.csv("FoodTrendData.csv",
 
             function hue(h) {
                 if (d3.event != null) {
-                    handle.attr("cx", x(Math.round(x2(d3.event.x))));
-                    textLabel.attr("x", x(Math.round(x2(d3.event.x))) - 8);
-                    textLabel.text(
+                    handle.attr("cx",
                         function (d) {
                             var currentYear = Math.round(x2(d3.event.x)) + 1974;
                             (function updateNodeYear(node) {
@@ -1081,12 +1106,36 @@ d3.csv("FoodTrendData.csv",
                                     });
                                 }
                             }(treeJson.root));
+
+                            var sums = [0,0,0,0,0,0];
+                            treeJson.root.children.forEach(function (child) {
+                                for (var i = 0; i < foodPyramidMapping.length; i++) {
+                                    if (foodPyramidMapping[i].list.indexOf(child.name) > -1) {
+                                        sums[i] = sums[i] + child.size;
+                                    }
+                                }
+                            })
+                            console.log(d3.sum(sums));
+
+
+                            totalPolygons.forEach(function (poly) {
+
+                            })
+
+
                             updateVis(treeJson.root);
+
+                            return x(Math.round(x2(d3.event.x)));
+                        }
+                    );
+                    textLabel.attr("x", x(Math.round(x2(d3.event.x))) - 8);
+                    textLabel.text(
+                        function (d) {
                             return Math.round(x2(d3.event.x)) + 1974;
                         }
                     );
                 }
-                svg.style("background-color", d3.hsl(h, 0.8, 0.8));
+                svg.style("background-color", "#f8faf9");
             }
 
 
@@ -1106,15 +1155,13 @@ d3.csv("FoodTrendData.csv",
 
                 var nodes2 = pack2(root2).descendants();
                 root.each(function (node) {
-                    var foundNode = nodes2.filter(function(n) {
+                    var foundNode = nodes2.filter(function (n) {
                         return n.data.name == node.data.name;
                     });
                     node.r = foundNode[0].r;
                     node.x = foundNode[0].x;
                     node.y = foundNode[0].y;
                 })
-
-
 
                 nodes.forEach(function (node) {
                     if (node.parent.data.name == "root") {
@@ -1129,7 +1176,8 @@ d3.csv("FoodTrendData.csv",
                     }
                 })
 
-               
+
+                zoom(root, circle, node);
             };
 
 
