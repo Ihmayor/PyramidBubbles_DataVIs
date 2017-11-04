@@ -80,6 +80,23 @@ function findPolygonBound(polygon) {
     }
 }
 
+
+function findGroupPolygonLayout(desc1Name, clusters) {
+    var foundPolygon;
+    for (var i = 0 ; i < foodPyramidMapping.length; i++) {
+        if (foodPyramidMapping[i].list.indexOf(desc1Name) > -1) {
+            foundPolygon = findPolygonLayout(foodPyramidMapping[i].name, clusters);
+        }
+    }
+    return foundPolygon;
+}
+
+function findPolygonLayout(name, clusters) {
+    return clusters.filter(function (cluster) {
+        return cluster.name === name;
+    })[0].layout;
+}
+
 function findGroupPolygon(desc1Name, clusters) {
     var foundPolygon;
     for (var i = 0 ; i < foodPyramidMapping.length; i++) {
@@ -660,11 +677,14 @@ d3.csv("FoodTrendData.csv",
                         }
                     })
                     .on('mouseover', function () {
-                        d3.select(this).style('opacity', 0.6)
+                        if ($(".selected").length == 0)
+                            d3.select(this).style('opacity', 0.9)
                     }
                     )
                     .on('mouseleave', function () {
-                        d3.select(this).style('opacity', 0.3)
+                        if (d3.select(this).attr("class") != "selected")
+                            d3.select(this).style('opacity', 0.3)
+                        
                     }
                     )
                     .attr('stroke-width', 10)
@@ -862,13 +882,19 @@ d3.csv("FoodTrendData.csv",
                     .style("opacity", 0.5)
                     .on("click", function (d) {
                         var className = $(this)[0].className.baseVal;
-                        console.log(className);
                         if (className.indexOf('leaf') > -1 || className.indexOf('label') > -1) {
                             d3.event.stopPropagation()
                             return;
                         }
 
-                        //Todo : make other nodes transparent
+                        //Make 
+                        var poly = findGroupPolygonLayout(d.data.desc1, viz.clusters);
+
+                        console.log(poly);
+                        if (poly != null || typeof poly != undefined) {
+                            $(poly._groups[0]).css('opacity', 0.6);
+                            $(poly._groups[0]).addClass("selected");
+                        }
                         if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation();
                     });
 
@@ -903,13 +929,15 @@ d3.csv("FoodTrendData.csv",
             svg
             .style("background-color", "#f8faf9")
             .on("click", function () {
-                console.log(this);
                 zoom(root, circle, node);
+                $(".selected").removeClass("selected");
+                $(".selected").css("opacity",0.3);
                 zoomToBox([0, 0], 1)
 
             });
 
             g2.on("click", function () {
+                $(".selected").removeClass("selected");
                 zoom(root, circle, node);
                 zoomToBox([0, 0], 1);
             })
@@ -923,7 +951,7 @@ d3.csv("FoodTrendData.csv",
                     .tween("zoom", function (d) {
                         var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
                         return function (t) {
-
+                            [node.x,node.y]
                             zoomTo(i(t), node, circle);
                         };
                     });
@@ -1159,14 +1187,47 @@ d3.csv("FoodTrendData.csv",
             //Isolate Bars
             var barsOnly = fillReferences.filter(function (fillItem) { if (fillItem.Key.indexOf('circle') < 0) return fillItem; });
 
-            g3 = svg.append("g").attr('class', "legend").attr("width",600);
-            var legendOffsetX = 0;
+            g3 = svg.append("g").attr('class', "legend").attr("width",600).attr("y",-400);
+            var legendOffsetX = 950;
+            var legendOffsetY = 100;
+
+            //Create the behaviors/bars legend
+            g3.append("text")
+                 .attr("class", "label")
+                 .attr('x', legendOffsetX - 890)
+                 .attr('y', legendOffsetY - 30)
+                 .style('font-size', '22px')
+                 .style('font-weight', 'bold')
+                 .attr('fill', 'black')
+                 .style('font-family', 'sans-serif')
+                 .text("Food Trend")
+
+            g3.append("text")
+                 .attr("class", "label")
+                 .attr('x', legendOffsetX - 860)
+                 .attr('y', legendOffsetY)
+                 .style('font-size', '22px')
+                 .style('font-weight', 'bold')
+                 .attr('fill', 'black')
+                 .style('font-family', 'sans-serif')
+                 .text("Pyramid Bubbles")
+
+           g3.append("text")
+                 .attr("class", "label")
+                 .attr('x', legendOffsetX - 840)
+                 .attr('y', legendOffsetY+40)
+                 .style('font-size', '18px')
+                 .style('font-weight', 'bold')
+                 .attr('fill', 'black')
+                 .style('font-family', 'sans-serif')
+                 .text("by Irene Mayor: 10126658")
+
 
             //Create the behaviors/bars legend
             g3.append("text")
                  .attr("class","label")
-                 .attr('x', 300)
-                 .attr('y', -900)
+                 .attr('x', legendOffsetX-60)
+                 .attr('y', legendOffsetY-30)
                  .style('font-size', '22px')
                  .style('font-weight', 'bold')
                  .attr('fill', 'black')
@@ -1174,8 +1235,8 @@ d3.csv("FoodTrendData.csv",
                  .text("Legend")
 
             g3.append("text")
-                .attr('x', 300)
-                .attr('y', -40)
+                .attr('x', legendOffsetX)
+                .attr('y', legendOffsetY)
                  .attr("class", "label")
                 .style('font-size', '18px')
                 .style('font-weight', 'bold')
@@ -1188,11 +1249,11 @@ d3.csv("FoodTrendData.csv",
                 var offsetX = 75;
                 var offsetY = 50;
 
-                var legendX = legendOffsetX + 40*i;
-                var legendY = 0;
+                var legendX = legendOffsetX-100 + 40*i;
+                var legendY = 140;
 
                 g3.append("text")
-                     .attr('x', legendX)
+                     .attr('x', legendX+10)
                      .attr('y', legendY - 8)
                  .attr("class", "label")
                      .text(fill.Key.replace("bar", ""))
@@ -1203,7 +1264,7 @@ d3.csv("FoodTrendData.csv",
                 g3.append("rect")
                     .attr('x', legendX)
                     .attr('y', legendY)
-                 .attr("class", "label")
+                    .attr("class", "label")
                     .attr('fill', fill.Value)
                     .attr('height', 20)
                     .attr('width', 20)
