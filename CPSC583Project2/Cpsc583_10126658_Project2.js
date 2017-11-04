@@ -765,7 +765,7 @@ d3.csv("FoodTrendData.csv",
 
             var color2 = d3.scaleLinear()
                 .domain([-1, 5])
-                .range(["hsl(49,90%,60%)", "hsl(70,50%,40%)"])
+                .range(["hsl(350,90%,90%)", "hsl(390,50%,30%)"])
                 .interpolate(d3.interpolateHcl);
 
             var color3 = d3.scaleLinear()
@@ -817,7 +817,7 @@ d3.csv("FoodTrendData.csv",
                        .duration(200)
                        .style("opacity", .6);
                         div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + d.data.unit + "<br/>Item Name: <br/>" + d.data.name)
-                            .style("left", (d3.event.pageX) + "px")
+                            .style("left", (d3.event.pageX) + 100 + "px")
                             .style("top", (d3.event.pageY - 28) + "px")
                             .style('font-size', '10px')
                     })
@@ -826,7 +826,7 @@ d3.csv("FoodTrendData.csv",
                        .duration(200)
                        .style("opacity", .6);
                         div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + d.data.unit + "<br/>Item Name: <br/>" + d.data.name)
-                            .style("left", (d3.event.pageX) + "px")
+                            .style("left", (d3.event.pageX)+20 + "px")
                             .style("top", (d3.event.pageY - 28) + "px")
                             .style('font-size', '10px')
                     })
@@ -875,13 +875,22 @@ d3.csv("FoodTrendData.csv",
                         .data([
                         { offset: "0%", color: d.children ? color(d.depth) : "blue" },
                         { offset: "50%", color: d.children ? color(d.depth) : "blue" },
-                        { offset: "100%", color: d.data.unit.indexOf("ml") > -1 || d.data.unit.indexOf("eq") > -1 ? d.data.unit.indexOf("no") ? color2(d.depth) : color3(d.depth) : color(d.depth) }
+                        { offset: "100%", color: d.data.unit.indexOf("ml") > -1 || d.data.unit.indexOf("eq") > -1 ? d.data.unit.indexOf("no") > -1 ? color3(d.depth) :color2(d.depth) : color(d.depth) }
                         ])
                         .enter().append("stop")
                         .attr("offset", function (d) { return d.offset; })
                         .attr("stop-color", function (d) { return d.color; });
-
                         var str = "url(#area-" + cleanName + ")";
+                        if (d.data.unit.indexOf("no") > -1) {
+                            console.log(d);
+                            str = "purple";
+                            console.log(d.data.unit.indexOf("no"));
+                        }
+                        if (d.data.unit == 'undefined')
+                        {
+                            console.log(d);
+                        }
+
                         return str;
                         //                        return d.children ? color(d.depth) : null;
                     })
@@ -936,13 +945,14 @@ d3.csv("FoodTrendData.csv",
             .style("background-color", "#f8faf9")
             .on("click", function () {
                 zoom(root, circle, node);
-                $(".selected").removeClass("selected");
                 $(".selected").css("opacity", 0.3);
+                $(".selected").removeClass("selected");
                 zoomToBox([0, 0], 1)
 
             });
 
             g2.on("click", function () {
+                $(".selected").css("opacity", 0.3);
                 $(".selected").removeClass("selected");
                 zoom(root, circle, node);
                 zoomToBox([0, 0], 1);
@@ -1005,7 +1015,7 @@ d3.csv("FoodTrendData.csv",
                 .clamp(true);
 
 
-            var slider = svg.append("g").attr("y", 700)
+            var slider = svg.append("g").attr("y", 600)
                 .attr("class", "slider")
                 .attr("transform", "translate(" + 20 + "," + (height - 150) + ")");
 
@@ -1178,17 +1188,18 @@ d3.csv("FoodTrendData.csv",
 
 
             fillReferences = [{
-                Key: "ml",
-                Value: color2(3)
-            },
-            {
-                Key: "eq",
+                Key: "ml/eq",
                 Value: color2(3)
             },
             {
                 Key: "g",
                 Value: color(1)
-            }]
+            },
+            {
+                Key: "no",
+                Value: "purple"
+            }
+            ]
 
             var trendReferences = [
                 {
@@ -1239,13 +1250,22 @@ d3.csv("FoodTrendData.csv",
             g3.append("text")
                   .attr("class", "label")
                   .attr('x', legendOffsetX - 840)
-                  .attr('y', legendOffsetY + 40)
+                  .attr('y', legendOffsetY + 80)
                   .style('font-size', '18px')
                   .style('font-weight', 'bold')
                   .attr('fill', 'black')
                   .style('font-family', 'sans-serif')
                   .text("by Irene Mayor: 10126658")
 
+            g3.append("text")
+                  .attr("class", "label")
+                  .attr('x', legendOffsetX - 870)
+                  .attr('y', legendOffsetY + 20)
+                  .style('font-size', '12px')
+                  .style('font-weight', 'bold')
+                  .attr('fill', 'black')
+                  .style('font-family', 'sans-serif')
+                  .text("UK Food Trends 1974-2014")
 
             //Create the behaviors/bars legend
             g3.append("text")
@@ -1286,8 +1306,8 @@ d3.csv("FoodTrendData.csv",
                      .attr('font-family', 'sans-serif')
 
                 g3.append("circle")
-                    .attr('cx', legendX+15)
-                    .attr('cy', legendY+20)
+                    .attr('cx', legendX + 15)
+                    .attr('cy', legendY + 20)
                     .attr("class", "label")
                     .attr('fill', fill.Value)
                     .attr('r', 20)
