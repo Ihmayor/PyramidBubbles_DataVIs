@@ -684,7 +684,7 @@ d3.csv("FoodTrendData.csv",
                     .on('mouseleave', function () {
                         if (d3.select(this).attr("class") != "selected")
                             d3.select(this).style('opacity', 0.3)
-                        
+
                     }
                     )
                     .attr('stroke-width', 10)
@@ -768,6 +768,12 @@ d3.csv("FoodTrendData.csv",
                 .range(["hsl(49,90%,60%)", "hsl(70,50%,40%)"])
                 .interpolate(d3.interpolateHcl);
 
+            var color3 = d3.scaleLinear()
+                .domain([-1, 5])
+                .range(["hsl(290,90%,60%)", "hsl(310,90%,20%)"])
+                .interpolate(d3.interpolateHcl);
+
+
 
             var pack = d3.pack()
                 .size([diameter - margin, diameter - margin])
@@ -810,7 +816,7 @@ d3.csv("FoodTrendData.csv",
                         div.transition()
                        .duration(200)
                        .style("opacity", .6);
-                        div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + "<br/>Item Name: <br/>" + d.data.name)
+                        div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + d.data.unit + "<br/>Item Name: <br/>" + d.data.name)
                             .style("left", (d3.event.pageX) + "px")
                             .style("top", (d3.event.pageY - 28) + "px")
                             .style('font-size', '10px')
@@ -819,7 +825,7 @@ d3.csv("FoodTrendData.csv",
                         div.transition()
                        .duration(200)
                        .style("opacity", .6);
-                        div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + "<br/>Item Name: <br/>" + d.data.name)
+                        div.html("Code: " + d.data.code + "<br/>Amount: " + d.data.size + d.data.unit + "<br/>Item Name: <br/>" + d.data.name)
                             .style("left", (d3.event.pageX) + "px")
                             .style("top", (d3.event.pageY - 28) + "px")
                             .style('font-size', '10px')
@@ -867,9 +873,9 @@ d3.csv("FoodTrendData.csv",
                         .attr("x2", "0%").attr("y2", "0.1")
                         .selectAll("stop")
                         .data([
-                        { offset: "0%", color: d.children ? color(d.depth) : "red" },
+                        { offset: "0%", color: d.children ? color(d.depth) : "blue" },
                         { offset: "50%", color: d.children ? color(d.depth) : "blue" },
-                        { offset: "100%", color: d.data.unit.indexOf("ml") > -1 || d.data.unit.indexOf("eq") > -1 ? color2(d.depth) : color(d.depth) }
+                        { offset: "100%", color: d.data.unit.indexOf("ml") > -1 || d.data.unit.indexOf("eq") > -1 ? d.data.unit.indexOf("no") ? color2(d.depth) : color3(d.depth) : color(d.depth) }
                         ])
                         .enter().append("stop")
                         .attr("offset", function (d) { return d.offset; })
@@ -892,7 +898,7 @@ d3.csv("FoodTrendData.csv",
 
                         console.log(poly);
                         if (poly != null || typeof poly != undefined) {
-                            $(poly._groups[0]).css('opacity', 0.6);
+                            $(poly._groups[0]).css('opacity', 0.9);
                             $(poly._groups[0]).addClass("selected");
                         }
                         if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation();
@@ -931,7 +937,7 @@ d3.csv("FoodTrendData.csv",
             .on("click", function () {
                 zoom(root, circle, node);
                 $(".selected").removeClass("selected");
-                $(".selected").css("opacity",0.3);
+                $(".selected").css("opacity", 0.3);
                 zoomToBox([0, 0], 1)
 
             });
@@ -951,7 +957,7 @@ d3.csv("FoodTrendData.csv",
                     .tween("zoom", function (d) {
                         var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
                         return function (t) {
-                            [node.x,node.y]
+                            [node.x, node.y]
                             zoomTo(i(t), node, circle);
                         };
                     });
@@ -1184,10 +1190,28 @@ d3.csv("FoodTrendData.csv",
                 Value: color(1)
             }]
 
-            //Isolate Bars
+            var trendReferences = [
+                {
+                    Key: "Rise",
+                    Value: "green"
+                },
+                {
+                    Key: "Same",
+                    Value: "blue"
+                },
+                {
+                    Key: "Lower",
+                    Value: "orange"
+                }
+            ]
+
+
+            //Scheme for the unit differences
+
+            //Scheme for the trend differences
             var barsOnly = fillReferences.filter(function (fillItem) { if (fillItem.Key.indexOf('circle') < 0) return fillItem; });
 
-            g3 = svg.append("g").attr('class', "legend").attr("width",600).attr("y",-400);
+            g3 = svg.append("g").attr('class', "legend").attr("width", 600).attr("y", -400);
             var legendOffsetX = 950;
             var legendOffsetY = 100;
 
@@ -1212,22 +1236,22 @@ d3.csv("FoodTrendData.csv",
                  .style('font-family', 'sans-serif')
                  .text("Pyramid Bubbles")
 
-           g3.append("text")
-                 .attr("class", "label")
-                 .attr('x', legendOffsetX - 840)
-                 .attr('y', legendOffsetY+40)
-                 .style('font-size', '18px')
-                 .style('font-weight', 'bold')
-                 .attr('fill', 'black')
-                 .style('font-family', 'sans-serif')
-                 .text("by Irene Mayor: 10126658")
+            g3.append("text")
+                  .attr("class", "label")
+                  .attr('x', legendOffsetX - 840)
+                  .attr('y', legendOffsetY + 40)
+                  .style('font-size', '18px')
+                  .style('font-weight', 'bold')
+                  .attr('fill', 'black')
+                  .style('font-family', 'sans-serif')
+                  .text("by Irene Mayor: 10126658")
 
 
             //Create the behaviors/bars legend
             g3.append("text")
-                 .attr("class","label")
-                 .attr('x', legendOffsetX-60)
-                 .attr('y', legendOffsetY-30)
+                 .attr("class", "label")
+                 .attr('x', legendOffsetX - 60)
+                 .attr('y', legendOffsetY - 30)
                  .style('font-size', '22px')
                  .style('font-weight', 'bold')
                  .attr('fill', 'black')
@@ -1245,15 +1269,62 @@ d3.csv("FoodTrendData.csv",
                 .text("Color Scheme Per Unit")
 
 
-            barsOnly.forEach(function (fill, i) {
+            fillReferences.forEach(function (fill, i) {
+                var offsetX = 105;
+                var offsetY = 50;
+
+                var legendX = legendOffsetX - 100 + 50 * i;
+                var legendY = 130;
+
+                g3.append("text")
+                     .attr('x', legendX + 10)
+                     .attr('y', legendY - 8)
+                 .attr("class", "label")
+                     .text(fill.Key.replace("bar", ""))
+                     .attr('fill', 'black')
+                     .attr('font-size', '18px')
+                     .attr('font-family', 'sans-serif')
+
+                g3.append("circle")
+                    .attr('cx', legendX+15)
+                    .attr('cy', legendY+20)
+                    .attr("class", "label")
+                    .attr('fill', fill.Value)
+                    .attr('r', 20)
+            })
+
+
+            g3.append("text")
+                .attr('x', legendOffsetX + 30)
+                .attr('y', legendOffsetY + 130)
+                 .attr("class", "label")
+                .style('font-size', '18px')
+                .style('font-weight', 'bold')
+                .attr('fill', 'black')
+                .style('font-family', 'sans-serif')
+                .text("Trend Scheme")
+
+            g3.append("text")
+              .attr('x', legendOffsetX + 90)
+              .attr('y', legendOffsetY + 160)
+               .attr("class", "label")
+              .style('font-size', '18px')
+              .style('font-weight', 'bold')
+              .attr('fill', 'black')
+              .style('font-family', 'sans-serif')
+              .text("Compared To Previous Year")
+
+
+
+            trendReferences.forEach(function (fill, i) {
                 var offsetX = 75;
                 var offsetY = 50;
 
-                var legendX = legendOffsetX-100 + 40*i;
-                var legendY = 140;
+                var legendX = legendOffsetX - 20 + 40 * i;
+                var legendY = 300;
 
                 g3.append("text")
-                     .attr('x', legendX+10)
+                     .attr('x', legendX + 10)
                      .attr('y', legendY - 8)
                  .attr("class", "label")
                      .text(fill.Key.replace("bar", ""))
@@ -1269,6 +1340,7 @@ d3.csv("FoodTrendData.csv",
                     .attr('height', 20)
                     .attr('width', 20)
             })
+
 
         });
 
