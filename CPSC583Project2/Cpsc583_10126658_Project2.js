@@ -515,11 +515,11 @@ d3.csv("FoodTrendData.csv",
             g2 = svg.append("g"),
             g = svg.append("g").attr("transform", "translate(600," + diameter / 2 + ")");
 
+            treeJson.root.children = treeJson.root.children.filter(function (d) { console.log(d.name);if (d.name != '') return d;})
             updateAllNodeYear(1974);
             ///Define Patterns
             var defs = svg.append('svg:defs');
 
-           
 
 
             defs.append("svg:pattern")
@@ -743,6 +743,12 @@ d3.csv("FoodTrendData.csv",
                 .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
                 .interpolate(d3.interpolateHcl);
 
+            var color2 = d3.scaleLinear()
+                .domain([-1, 5])
+                .range(["hsl(49,90%,60%)", "hsl(70,50%,40%)"])
+                .interpolate(d3.interpolateHcl);
+
+
             var pack = d3.pack()
                 .size([diameter - margin, diameter - margin])
                 .padding(2);
@@ -750,6 +756,11 @@ d3.csv("FoodTrendData.csv",
             var root = d3.hierarchy(treeJson.root)
                     .sum(function (d) { return d.size; })
                     .sort(function (a, b) { return b.value - a.value; });
+            
+            root.each(function (node) {
+                if (node.data.name == "" || node.data.name == null)
+                { node.r = 0;}
+            })
 
             var focus = root,
                 nodes = pack(root).descendants(),
@@ -770,7 +781,11 @@ d3.csv("FoodTrendData.csv",
                     .append("circle")
                     .on("mouseover", function (d) {
                         //Highlight the bar hovered over at this moment
-                        d3.select(this).style("stroke-width", 5).style("stroke", "red")
+                        d3.select(this).style("stroke-width", 5).style("stroke",
+                            function (d) {
+                                return d.parent ? d.children ? "red" : "white" : "grey";
+
+                            })
                         //Show the tool tip with associated data
                         div.transition()
                        .duration(200)
@@ -799,30 +814,59 @@ d3.csv("FoodTrendData.csv",
                                     .duration(500)
 
                     })
-                    .attr("class", function (d) { return d.parent ? d.children ? "node" + d.data.name : "node node--leaf" : "node node--root"; })
+                    .attr("class", function (d) { return d.parent ? d.children ? "node": "node node--leaf" : "node node--root"; })
+                    .attr("z", function    (d) { return d.parent ? d.children ? 1*d.depth : 100 : 1; })
                     .style("fill", function (d) {
-                                defs.append("svg:linearGradient")
-                                .attr("id", "area-"+d.data.name)
-                                .attr("gradientUnits", "userSpaceOnUse")
-                                .attr("x1", 0).attr("y1", 0)
-                                .attr("x2", 0).attr("y2", 10)
-                                .selectAll("stop")
-                                .data([
-                                { offset: "0%", color: d.children ? color(d.depth) : "#f2dee4" },
-                                { offset: "90%", color: d.children ? color(d.depth) : "#f2dee4" },
-                                { offset: "100%", color: d.data.unit.indexOf("ml") > -1 || d.data.unit.indexOf("eq") > -1 ? "#e8f7cf" : "#f2dee4" }
-                                ])
-                                .enter().append("stop")
-                                .attr("offset", function (d) { return d.offset; })
-                                .attr("stop-color", function (d) { return d.color; });
+                        var cleanName = d.data.code.replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace(" ", "")
+                            .replace("-", "")
+                            .replace(" ", "")
+                            .replace(",", "")
+                            .replace(",", "")
+                            .replace(",", "")
+                            .replace(" ", "")
+                            .replace("-","");
+                        defs.append("svg:radialGradient")
+                        .attr("id", "area-" + cleanName)
+                        .attr("gradientUnits", "userSpaceOnUse")
+                        .attr("x1", "0%").attr("y1", "0%")
+                        .attr("x2", "0%").attr("y2", "0.1")
+                        .selectAll("stop")
+                        .data([
+                        { offset: "0%", color: d.children ? color(d.depth) : "red" },
+                        { offset: "50%", color: d.children ? color(d.depth) : "blue" },
+                        { offset: "100%", color: d.data.unit.indexOf("ml") > -1 || d.data.unit.indexOf("eq") > -1 ? color2(d.depth) : color(d.depth) }
+                        ])
+                        .enter().append("stop")
+                        .attr("offset", function (d) { return d.offset; })
+                        .attr("stop-color", function (d) { return d.color; });
 
-                        var str = "url(#area-"+d.data.name+")";
+                        var str = "url(#area-" + cleanName + ")";
                         return str;
-//                        return d.children ? color(d.depth) : null;
+                        //                        return d.children ? color(d.depth) : null;
                     })
                     .style("opacity", 0.5)
                     .on("click", function (d) {
-                        //Todo : make transparent nodes
+                        var className = $(this)[0].className.baseVal;
+                        if (className.indexOf('leaf') > -1) {
+                            d3.event.stopPropagation()
+                            return;
+                        }
+                        //Todo : make other nodes transparent
                         if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation();
                     });
 
@@ -848,13 +892,15 @@ d3.csv("FoodTrendData.csv",
                         .attr("class", "label")
                         .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
                         .style("display", function (d) { return d.parent === root || d.parent.parent === root ? "inline" : "none"; })
-                        .text(function (d) { return d.data.name; });
+                        .text(function (d) {
+                            return d.data.name; });
 
             var node = g.selectAll("circle,text");
 
             svg
             .style("background-color", "#f8faf9")
             .on("click", function () {
+                console.log(this);
                 zoom(root, circle, node);
                 zoomToBox([0, 0], 1)
 
@@ -1119,6 +1165,16 @@ d3.csv("FoodTrendData.csv",
                                 else
                                     polygon.attr("stroke", "orange")
                             }
+                            var root5 = d3.hierarchy(data)
+                                  .sum(function (d) {
+                                      return d.size;
+                                  })
+                                  .sort(function (a, b) {
+                                      return b.value - a.value;
+                                  });
+                            root5.each(function (node) {
+
+                            });
 
                             updateVis(treeJson.root);
 
@@ -1155,10 +1211,14 @@ d3.csv("FoodTrendData.csv",
                     var foundNode = nodes2.filter(function (n) {
                         return n.data.name == node.data.name;
                     });
+                    if (node.data.name == "" || node.data.name == null)
+                        node.r = 0;
+                    else
                     node.r = foundNode[0].r;
                     node.x = foundNode[0].x;
                     node.y = foundNode[0].y;
                 })
+
 
                 nodes.forEach(function (node) {
                     if (node.parent.data.name == "root") {
