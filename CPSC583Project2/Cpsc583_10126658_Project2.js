@@ -314,6 +314,8 @@ function createDeepChild(name, d) {
 
 function updateAllNodeYear(currentYear) {
     (function updateNodeYear(node) {
+        if (node.name == null || node.name == '')
+            node.r = 0;
         if (node.size) {
             if (node.children.length == 0) {
                 node.size = node[currentYear];
@@ -514,8 +516,6 @@ d3.csv("FoodTrendData.csv",
             diameter = 480,
             g2 = svg.append("g"),
             g = svg.append("g").attr("transform", "translate(600," + diameter / 2 + ")");
-
-            treeJson.root.children = treeJson.root.children.filter(function (d) { console.log(d.name);if (d.name != '') return d;})
             updateAllNodeYear(1974);
             ///Define Patterns
             var defs = svg.append('svg:defs');
@@ -756,10 +756,10 @@ d3.csv("FoodTrendData.csv",
             var root = d3.hierarchy(treeJson.root)
                     .sum(function (d) { return d.size; })
                     .sort(function (a, b) { return b.value - a.value; });
-            
+
             root.each(function (node) {
                 if (node.data.name == "" || node.data.name == null)
-                { node.r = 0;}
+                { node.r = 0; }
             })
 
             var focus = root,
@@ -814,8 +814,8 @@ d3.csv("FoodTrendData.csv",
                                     .duration(500)
 
                     })
-                    .attr("class", function (d) { return d.parent ? d.children ? "node": "node node--leaf" : "node node--root"; })
-                    .attr("z", function    (d) { return d.parent ? d.children ? 1*d.depth : 100 : 1; })
+                    .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+                    .attr("z", function (d) { return d.parent ? d.children ? 1 * d.depth : 100 : 1; })
                     .style("fill", function (d) {
                         var cleanName = d.data.code.replace(" ", "")
                             .replace(" ", "")
@@ -839,7 +839,7 @@ d3.csv("FoodTrendData.csv",
                             .replace(",", "")
                             .replace(",", "")
                             .replace(" ", "")
-                            .replace("-","");
+                            .replace("-", "");
                         defs.append("svg:radialGradient")
                         .attr("id", "area-" + cleanName)
                         .attr("gradientUnits", "userSpaceOnUse")
@@ -862,10 +862,12 @@ d3.csv("FoodTrendData.csv",
                     .style("opacity", 0.5)
                     .on("click", function (d) {
                         var className = $(this)[0].className.baseVal;
-                        if (className.indexOf('leaf') > -1) {
+                        console.log(className);
+                        if (className.indexOf('leaf') > -1 || className.indexOf('label') > -1) {
                             d3.event.stopPropagation()
                             return;
                         }
+
                         //Todo : make other nodes transparent
                         if (focus !== d) zoom(d, circle, g.selectAll("circle,text")), d3.event.stopPropagation();
                     });
@@ -893,7 +895,8 @@ d3.csv("FoodTrendData.csv",
                         .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
                         .style("display", function (d) { return d.parent === root || d.parent.parent === root ? "inline" : "none"; })
                         .text(function (d) {
-                            return d.data.name; });
+                            return d.data.name;
+                        });
 
             var node = g.selectAll("circle,text");
 
@@ -920,6 +923,7 @@ d3.csv("FoodTrendData.csv",
                     .tween("zoom", function (d) {
                         var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
                         return function (t) {
+
                             zoomTo(i(t), node, circle);
                         };
                     });
@@ -930,33 +934,17 @@ d3.csv("FoodTrendData.csv",
                     .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
                     .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; });
 
-                //console.log("observations");
-                if (focus.x == root.x && focus.y == root.y) {
-                    //  console.log("test root");
-                }
-
-
             }
 
 
 
 
             function zoomToBox(translate, scale) {
-                //if (Math.abs(root.x) == Math.abs(translate[0]) && Math.abs(root.y) == Math.abs(translate[1]))
-                //   console.log("test");
-                //else {
-                //    console.log("Check1 : "+translate[0])
-                //    console.log("Check2: " + root.x);
-                //    console.log("Check3: " + translate[1])
-                //    console.log("Check4: " + root.y);
-                //}
-
                 d3.selectAll('polygon')
                 .transition()
                     .duration(750)
                     .style("stroke-width", 10 + "px")
                     .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
-
             }
 
             function zoomTo(v, node, circle) {
@@ -965,96 +953,6 @@ d3.csv("FoodTrendData.csv",
                     return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")";
                 });
                 circle.attr("r", function (d) { return d.r * k; });
-
-            }
-
-
-
-            // inspired from http://bl.ocks.org/larsenmtl/39a028da44db9e8daf14578cb354b5cb
-            function forceCollidePolygon(polygon, radius) {
-                console.log("interesting...");
-                var nodes, n, iterations = 1,
-                    max = Math.max,
-                    min = Math.min;
-                var absub = function (a, b) { return max(a, b) - min(a, b); };
-                var center = d3.polygonCentroid(polygon);
-
-                // took from d3-force/src/collide.js
-                if (typeof radius !== "function") radius = constant(radius == null ? 1 : +radius);
-
-                // took from d3-force/src/constant.js
-                function constant(x) {
-                    return function () {
-                        return x;
-                    };
-                }
-                // took from d3-force/src/jiggle.js
-                function jiggle() {
-                    return (Math.random() - 0.5) * 1e-6;
-                }
-
-                // adapted from http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-                function intersection(p0, p1, p2, p3) {
-                    var s1 = [p1[0] - p0[0], p1[1] - p0[1]];
-                    var s2 = [p3[0] - p2[0], p3[1] - p2[1]];
-                    // intersection compute
-                    var s, t;
-                    s = -s1[1] * (p0[0] - p2[0]) + s1[0] * (p0[1] - p3[1]);
-                    t = s2[0] * (p0[1] - p2[1]) - s2[1] * (p0[0] - p3[0]);
-                    s = s / (-s2[0] * s1[1] + s1[0] * s2[1]);
-                    t = t / (-s2[0] * s1[1] + s1[0] * s2[1]);
-
-                    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
-                        // intersection coordinates
-                        return {
-                            x: p0[0] + (t * s1[0]),
-                            y: p0[1] + (t * s1[1])
-                        };
-                    }
-                    return false;
-                }
-
-                function force() {
-                    for (var l = 0; l < iterations; l++) {
-                        for (var k = 0; k < nodes.length; k++) {
-                            var node = nodes[k];
-                            var r = radius(node);
-                            var px = (node.x >= center[0] ? 1 : -1);
-                            var py = (node.y >= center[1] ? 1 : -1);
-
-                            var t = [node.x + px * r, node.y + py * r];
-
-                            // we loop over polygon's edges to check collisions
-                            for (var j = 0; j < polygon.length; j++) {
-                                var n = (j + 1) < polygon.length ? (j + 1) : 0;
-                                var p1 = polygon[j];
-                                var p2 = polygon[n];
-                                var i = intersection(p1, p2, center, t);
-                                if (i) {
-                                    // give a small velocity at the opposite of the collision point
-                                    // this can be tweaked
-                                    node.vx = -px / Math.sqrt(absub(i.x, t[0]) + jiggle());
-                                    node.vy = -py / Math.sqrt(absub(i.y, t[1]) + jiggle());
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    return;
-                }
-
-                force.iterations = function (_) {
-                    return arguments.length ? (iterations = +_, force) : iterations;
-                };
-
-                force.initialize = function (_) {
-                    n = (nodes = _).length;
-                };
-
-                force.radius = function (_) {
-                    return arguments.length ? (radius = typeof _ === "function" ? _ : constant(+_), force) : radius;
-                };
-                return force;
             }
 
             //Step One Get nested nodes (Check) 
@@ -1105,6 +1003,13 @@ d3.csv("FoodTrendData.csv",
                 .attr("x", x)
                 .attr("text-anchor", "middle")
                 .text(function (d, i) { return "|"; })
+
+            var axisText = slider.insert("text", ".track-overlay")
+            .attr("class", "axisText")
+            .attr("y", 50)
+            .attr("x", -8)
+            .text(function () { return "Year"; })
+
 
 
             var handle = slider.insert("circle", ".track-overlay")
@@ -1214,7 +1119,7 @@ d3.csv("FoodTrendData.csv",
                     if (node.data.name == "" || node.data.name == null)
                         node.r = 0;
                     else
-                    node.r = foundNode[0].r;
+                        node.r = foundNode[0].r;
                     node.x = foundNode[0].x;
                     node.y = foundNode[0].y;
                 })
@@ -1238,6 +1143,71 @@ d3.csv("FoodTrendData.csv",
             };
 
 
+            fillReferences = [{
+                Key: "ml",
+                Value: color2(3)
+            },
+            {
+                Key: "eq",
+                Value: color2(3)
+            },
+            {
+                Key: "g",
+                Value: color(1)
+            }]
+
+            //Isolate Bars
+            var barsOnly = fillReferences.filter(function (fillItem) { if (fillItem.Key.indexOf('circle') < 0) return fillItem; });
+
+            g3 = svg.append("g").attr('class', "legend").attr("width",600);
+            var legendOffsetX = 0;
+
+            //Create the behaviors/bars legend
+            g3.append("text")
+                 .attr("class","label")
+                 .attr('x', 300)
+                 .attr('y', -900)
+                 .style('font-size', '22px')
+                 .style('font-weight', 'bold')
+                 .attr('fill', 'black')
+                 .style('font-family', 'sans-serif')
+                 .text("Legend")
+
+            g3.append("text")
+                .attr('x', 300)
+                .attr('y', -40)
+                 .attr("class", "label")
+                .style('font-size', '18px')
+                .style('font-weight', 'bold')
+                .attr('fill', 'black')
+                .style('font-family', 'sans-serif')
+                .text("Color Scheme Per Unit")
+
+
+            barsOnly.forEach(function (fill, i) {
+                var offsetX = 75;
+                var offsetY = 50;
+
+                var legendX = legendOffsetX + 40*i;
+                var legendY = 0;
+
+                g3.append("text")
+                     .attr('x', legendX)
+                     .attr('y', legendY - 8)
+                 .attr("class", "label")
+                     .text(fill.Key.replace("bar", ""))
+                     .attr('fill', 'black')
+                     .attr('font-size', '18px')
+                     .attr('font-family', 'sans-serif')
+
+                g3.append("rect")
+                    .attr('x', legendX)
+                    .attr('y', legendY)
+                 .attr("class", "label")
+                    .attr('fill', fill.Value)
+                    .attr('height', 20)
+                    .attr('width', 20)
+            })
 
         });
 
