@@ -3,6 +3,9 @@
 
 [Access Hosted Webpage Here](http://irenehmayor.me/CPSC583/Project2/UKFoodTrends.html)
 
+# Libraries used
+
+d3.js
 
 # Interactions 
 
